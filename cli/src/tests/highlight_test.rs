@@ -4,13 +4,13 @@ use std::{
     os::raw::c_char,
     ptr, slice, str,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         LazyLock,
+        atomic::{AtomicUsize, Ordering},
     },
 };
 
 use tree_sitter_highlight::{
-    c, Error, Highlight, HighlightConfiguration, HighlightEvent, Highlighter, HtmlRenderer,
+    Error, Highlight, HighlightConfiguration, HighlightEvent, Highlighter, HtmlRenderer, c,
 };
 
 use super::helpers::fixtures::{get_highlight_config, get_language, get_language_queries_path};

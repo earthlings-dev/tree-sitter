@@ -24,14 +24,14 @@ mod render;
 mod rules;
 mod tables;
 
-use build_tables::build_tables;
 pub use build_tables::ParseTableBuilderError;
+use build_tables::build_tables;
 use grammars::InputGrammar;
 pub use node_types::{SuperTypeCycleError, VariableInfoError};
-use parse_grammar::parse_grammar;
 pub use parse_grammar::ParseGrammarError;
-use prepare_grammar::prepare_grammar;
+use parse_grammar::parse_grammar;
 pub use prepare_grammar::PrepareGrammarError;
+use prepare_grammar::prepare_grammar;
 use render::render_c_code;
 pub use render::{ABI_VERSION_MAX, ABI_VERSION_MIN};
 
@@ -197,8 +197,12 @@ pub fn generate_parser_in_directory(
     let semantic_version = read_grammar_version(&repo_path)?;
 
     if semantic_version.is_none() && abi_version > ABI_VERSION_MIN {
-        println!("Warning: No `tree-sitter.json` file found in your grammar, this file is required to generate with ABI {abi_version}. Using ABI version {ABI_VERSION_MIN} instead.");
-        println!("This file can be set up with `tree-sitter init`. For more information, see https://tree-sitter.github.io/tree-sitter/cli/init.");
+        println!(
+            "Warning: No `tree-sitter.json` file found in your grammar, this file is required to generate with ABI {abi_version}. Using ABI version {ABI_VERSION_MIN} instead."
+        );
+        println!(
+            "This file can be set up with `tree-sitter init`. For more information, see https://tree-sitter.github.io/tree-sitter/cli/init."
+        );
         abi_version = ABI_VERSION_MIN;
     }
 

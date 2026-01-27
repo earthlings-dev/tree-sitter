@@ -4,7 +4,7 @@ use std::{
     str::{self, FromStr},
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use heck::{ToKebabCase, ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase};
 use indoc::{formatdoc, indoc};
 use semver::Version;
@@ -937,44 +937,40 @@ fn generate_file(
         && generate_opts.author_url.is_none()
         && filename == "package.json"
     {
-        if let Some(start_idx) = replacement.find(AUTHOR_BLOCK_JS) {
-            if let Some(end_idx) = replacement[start_idx..]
+        if let Some(start_idx) = replacement.find(AUTHOR_BLOCK_JS)
+            && let Some(end_idx) = replacement[start_idx..]
                 .find("},")
                 .map(|i| i + start_idx + 2)
-            {
-                replacement.replace_range(start_idx..end_idx, "");
-            }
+        {
+            replacement.replace_range(start_idx..end_idx, "");
         }
     } else if generate_opts.author_name.is_none() && generate_opts.author_email.is_none() {
         match filename {
             "pyproject.toml" => {
-                if let Some(start_idx) = replacement.find(AUTHOR_BLOCK_PY) {
-                    if let Some(end_idx) = replacement[start_idx..]
+                if let Some(start_idx) = replacement.find(AUTHOR_BLOCK_PY)
+                    && let Some(end_idx) = replacement[start_idx..]
                         .find("}]")
                         .map(|i| i + start_idx + 2)
-                    {
-                        replacement.replace_range(start_idx..end_idx, "");
-                    }
+                {
+                    replacement.replace_range(start_idx..end_idx, "");
                 }
             }
             "grammar.js" => {
-                if let Some(start_idx) = replacement.find(AUTHOR_BLOCK_GRAMMAR) {
-                    if let Some(end_idx) = replacement[start_idx..]
+                if let Some(start_idx) = replacement.find(AUTHOR_BLOCK_GRAMMAR)
+                    && let Some(end_idx) = replacement[start_idx..]
                         .find(" \n")
                         .map(|i| i + start_idx + 1)
-                    {
-                        replacement.replace_range(start_idx..end_idx, "");
-                    }
+                {
+                    replacement.replace_range(start_idx..end_idx, "");
                 }
             }
             "Cargo.toml" => {
-                if let Some(start_idx) = replacement.find(AUTHOR_BLOCK_RS) {
-                    if let Some(end_idx) = replacement[start_idx..]
+                if let Some(start_idx) = replacement.find(AUTHOR_BLOCK_RS)
+                    && let Some(end_idx) = replacement[start_idx..]
                         .find("\"]")
                         .map(|i| i + start_idx + 2)
-                    {
-                        replacement.replace_range(start_idx..end_idx, "");
-                    }
+                {
+                    replacement.replace_range(start_idx..end_idx, "");
                 }
             }
             _ => {}

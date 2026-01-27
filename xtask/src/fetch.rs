@@ -1,6 +1,8 @@
-use crate::{bail_on_err, FetchFixtures, EMSCRIPTEN_VERSION};
-use anyhow::Result;
 use std::{fs, path::Path, process::Command};
+
+use anyhow::Result;
+
+use crate::{EMSCRIPTEN_VERSION, FetchFixtures, bail_on_err};
 
 pub fn run_fixtures(args: &FetchFixtures) -> Result<()> {
     let fixtures_dir = Path::new(env!("CARGO_MANIFEST_DIR"))

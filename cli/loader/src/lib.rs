@@ -19,7 +19,7 @@ use std::{
     time::SystemTime,
 };
 
-use anyhow::{anyhow, Context, Error, Result};
+use anyhow::{Context, Error, Result, anyhow};
 use etcetera::BaseStrategy as _;
 use fs4::fs_std::FileExt;
 use indoc::indoc;
@@ -155,7 +155,7 @@ impl TreeSitterJSON {
     }
 
     #[must_use]
-    pub fn has_multiple_language_configs(&self) -> bool {
+    pub const fn has_multiple_language_configs(&self) -> bool {
         self.grammars.len() > 1
     }
 }
@@ -454,14 +454,14 @@ impl Loader {
             if let Ok(entries) = fs::read_dir(parser_container_dir) {
                 for entry in entries {
                     let entry = entry?;
-                    if let Some(parser_dir_name) = entry.file_name().to_str() {
-                        if parser_dir_name.starts_with("tree-sitter-") {
-                            self.find_language_configurations_at_path(
-                                &parser_container_dir.join(parser_dir_name),
-                                false,
-                            )
-                            .ok();
-                        }
+                    if let Some(parser_dir_name) = entry.file_name().to_str()
+                        && parser_dir_name.starts_with("tree-sitter-")
+                    {
+                        self.find_language_configurations_at_path(
+                            &parser_container_dir.join(parser_dir_name),
+                            false,
+                        )
+                        .ok();
                     }
                 }
             }
@@ -518,12 +518,13 @@ impl Loader {
                     let file = fs::File::open(path)?;
                     let reader = BufReader::new(file);
                     let first_line = reader.lines().next().transpose()?;
-                    if let Some(first_line) = first_line {
-                        if regex.is_match(&first_line) && !ids.is_empty() {
-                            let configuration = &self.language_configurations[ids[0]];
-                            let language = self.language_for_id(configuration.language_id)?;
-                            return Ok(Some((language, configuration)));
-                        }
+                    if let Some(first_line) = first_line
+                        && regex.is_match(&first_line)
+                        && !ids.is_empty()
+                    {
+                        let configuration = &self.language_configurations[ids[0]];
+                        let language = self.language_for_id(configuration.language_id)?;
+                        return Ok(Some((language, configuration)));
                     }
                 }
 
@@ -553,51 +554,51 @@ impl Loader {
                     .get(&extensions.join("."))
             });
 
-        if let Some(configuration_ids) = configuration_ids {
-            if !configuration_ids.is_empty() {
-                let configuration = if configuration_ids.len() == 1 {
-                    &self.language_configurations[configuration_ids[0]]
-                }
-                // If multiple language configurations match, then determine which
-                // one to use by applying the configurations' content regexes.
-                else {
-                    let file_contents = fs::read(path)
-                        .with_context(|| format!("Failed to read path {}", path.display()))?;
-                    let file_contents = String::from_utf8_lossy(&file_contents);
-                    let mut best_score = -2isize;
-                    let mut best_configuration_id = None;
-                    for configuration_id in configuration_ids {
-                        let config = &self.language_configurations[*configuration_id];
-
-                        // If the language configuration has a content regex, assign
-                        // a score based on the length of the first match.
-                        let score;
-                        if let Some(content_regex) = &config.content_regex {
-                            if let Some(mat) = content_regex.find(&file_contents) {
-                                score = (mat.end() - mat.start()) as isize;
-                            }
-                            // If the content regex does not match, then *penalize* this
-                            // language configuration, so that language configurations
-                            // without content regexes are preferred over those with
-                            // non-matching content regexes.
-                            else {
-                                score = -1;
-                            }
-                        } else {
-                            score = 0;
-                        }
-                        if score > best_score {
-                            best_configuration_id = Some(*configuration_id);
-                            best_score = score;
-                        }
-                    }
-
-                    &self.language_configurations[best_configuration_id.unwrap()]
-                };
-
-                let language = self.language_for_id(configuration.language_id)?;
-                return Ok(Some((language, configuration)));
+        if let Some(configuration_ids) = configuration_ids
+            && !configuration_ids.is_empty()
+        {
+            let configuration = if configuration_ids.len() == 1 {
+                &self.language_configurations[configuration_ids[0]]
             }
+            // If multiple language configurations match, then determine which
+            // one to use by applying the configurations' content regexes.
+            else {
+                let file_contents = fs::read(path)
+                    .with_context(|| format!("Failed to read path {}", path.display()))?;
+                let file_contents = String::from_utf8_lossy(&file_contents);
+                let mut best_score = -2isize;
+                let mut best_configuration_id = None;
+                for configuration_id in configuration_ids {
+                    let config = &self.language_configurations[*configuration_id];
+
+                    // If the language configuration has a content regex, assign
+                    // a score based on the length of the first match.
+                    let score;
+                    if let Some(content_regex) = &config.content_regex {
+                        if let Some(mat) = content_regex.find(&file_contents) {
+                            score = (mat.end() - mat.start()) as isize;
+                        }
+                        // If the content regex does not match, then *penalize* this
+                        // language configuration, so that language configurations
+                        // without content regexes are preferred over those with
+                        // non-matching content regexes.
+                        else {
+                            score = -1;
+                        }
+                    } else {
+                        score = 0;
+                    }
+                    if score > best_score {
+                        best_configuration_id = Some(*configuration_id);
+                        best_score = score;
+                    }
+                }
+
+                &self.language_configurations[best_configuration_id.unwrap()]
+            };
+
+            let language = self.language_for_id(configuration.language_id)?;
+            return Ok(Some((language, configuration)));
         }
 
         Ok(None)
@@ -610,13 +611,13 @@ impl Loader {
         let mut best_match_length = 0;
         let mut best_match_position = None;
         for (i, configuration) in self.language_configurations.iter().enumerate() {
-            if let Some(injection_regex) = &configuration.injection_regex {
-                if let Some(mat) = injection_regex.find(string) {
-                    let length = mat.end() - mat.start();
-                    if length > best_match_length {
-                        best_match_position = Some(i);
-                        best_match_length = length;
-                    }
+            if let Some(injection_regex) = &configuration.injection_regex
+                && let Some(mat) = injection_regex.find(string)
+            {
+                let length = mat.end() - mat.start();
+                if length > best_match_length {
+                    best_match_position = Some(i);
+                    best_match_length = length;
                 }
             }
         }
@@ -670,7 +671,7 @@ impl Loader {
     }
 
     pub fn load_language_at_path_with_name(&self, mut config: CompileConfig) -> Result<Language> {
-        let mut lib_name = config.name.to_string();
+        let mut lib_name = config.name.clone();
         let language_fn_name = format!(
             "tree_sitter_{}",
             replace_dashes_with_underscores(&config.name)
@@ -907,48 +908,50 @@ impl Loader {
             .arg("-U")
             .arg(library_path)
             .output();
-        if let Ok(output) = command {
-            if output.status.success() {
-                let mut found_non_static = false;
-                for line in String::from_utf8_lossy(&output.stdout).lines() {
-                    if line.contains(" T ") {
-                        if let Some(function_name) =
-                            line.split_whitespace().collect::<Vec<_>>().get(2)
-                        {
-                            if !line.contains("tree_sitter_") {
-                                if !found_non_static {
-                                    found_non_static = true;
-                                    eprintln!("Warning: Found non-static non-tree-sitter functions in the external scannner");
-                                }
-                                eprintln!("  `{function_name}`");
-                            } else {
-                                must_have.retain(|f| f != function_name);
-                            }
+        if let Ok(output) = command
+            && output.status.success()
+        {
+            let mut found_non_static = false;
+            for line in String::from_utf8_lossy(&output.stdout).lines() {
+                if line.contains(" T ")
+                    && let Some(function_name) = line.split_whitespace().collect::<Vec<_>>().get(2)
+                {
+                    if !line.contains("tree_sitter_") {
+                        if !found_non_static {
+                            found_non_static = true;
+                            eprintln!(
+                                "Warning: Found non-static non-tree-sitter functions in the external scannner"
+                            );
                         }
+                        eprintln!("  `{function_name}`");
+                    } else {
+                        must_have.retain(|f| f != function_name);
                     }
                 }
-                if found_non_static {
-                    eprintln!("Consider making these functions static, they can cause conflicts when another tree-sitter project uses the same function name");
-                }
+            }
+            if found_non_static {
+                eprintln!(
+                    "Consider making these functions static, they can cause conflicts when another tree-sitter project uses the same function name"
+                );
+            }
 
-                if !must_have.is_empty() {
-                    let missing = must_have
-                        .iter()
-                        .map(|f| format!("  `{f}`"))
-                        .collect::<Vec<_>>()
-                        .join("\n");
+            if !must_have.is_empty() {
+                let missing = must_have
+                    .iter()
+                    .map(|f| format!("  `{f}`"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
 
-                    return Err(anyhow!(format!(
-                        indoc! {"
+                return Err(anyhow!(format!(
+                    indoc! {"
                             Missing required functions in the external scanner, parsing won't work without these!
 
                             {}
 
                             You can read more about this at https://tree-sitter.github.io/tree-sitter/creating-parsers/4-external-scanners
                         "},
-                        missing,
-                    )));
-                }
+                    missing,
+                )));
             }
         }
 
@@ -1052,7 +1055,7 @@ impl Loader {
                 #[cfg(unix)]
                 {
                     #[link(name = "c")]
-                    extern "C" {
+                    unsafe extern "C" {
                         fn getuid() -> u32;
                     }
                     // don't need to set user for podman since PODMAN_USERNS=keep-id is already set
@@ -1184,7 +1187,7 @@ impl Loader {
                                         if path.starts_with(parser_path) {
                                             Ok(path)
                                         } else {
-                                            Err(anyhow!("External file path {path:?} is outside of parser directory {parser_path:?}"))
+                                            Err(anyhow!("External file path {} is outside of parser directory {}", path.display(), parser_path.display()))
                                         }
                                     })
                                     .collect::<Result<Vec<_>>>()
@@ -1219,7 +1222,7 @@ impl Loader {
 
                 for file_type in &configuration.file_types {
                     self.language_configuration_ids_by_file_type
-                        .entry(file_type.to_string())
+                        .entry(file_type.clone())
                         .or_default()
                         .push(self.language_configurations.len());
                 }
@@ -1373,15 +1376,15 @@ impl Loader {
         }
     }
 
-    pub fn debug_build(&mut self, flag: bool) {
+    pub const fn debug_build(&mut self, flag: bool) {
         self.debug_build = flag;
     }
 
-    pub fn sanitize_build(&mut self, flag: bool) {
+    pub const fn sanitize_build(&mut self, flag: bool) {
         self.sanitize_build = flag;
     }
 
-    pub fn force_rebuild(&mut self, rebuild: bool) {
+    pub const fn force_rebuild(&mut self, rebuild: bool) {
         self.force_rebuild = rebuild;
     }
 

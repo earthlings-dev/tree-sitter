@@ -11,15 +11,15 @@ use std::{
 };
 
 use anstyle::{AnsiColor, Color, Style};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::ValueEnum;
 use indoc::indoc;
 use regex::{
-    bytes::{Regex as ByteRegex, RegexBuilder as ByteRegexBuilder},
     Regex,
+    bytes::{Regex as ByteRegex, RegexBuilder as ByteRegexBuilder},
 };
 use similar::{ChangeTag, TextDiff};
-use tree_sitter::{format_sexp, Language, LogType, Parser, Query, Tree};
+use tree_sitter::{Language, LogType, Parser, Query, Tree, format_sexp};
 use walkdir::WalkDir;
 
 use super::util;
@@ -60,7 +60,7 @@ static POINT_REGEX: LazyLock<Regex> =
 pub enum TestEntry {
     Group {
         name: String,
-        children: Vec<TestEntry>,
+        children: Vec<Self>,
         file_path: Option<PathBuf>,
     },
     Example {
@@ -574,10 +574,9 @@ fn run_tests(
 
             let matches_filter = |name: &str, file_name: &Option<String>, opts: &TestOptions| {
                 if let (Some(test_file_path), Some(filter_file_name)) = (file_name, &opts.file_name)
+                    && !filter_file_name.eq(test_file_path)
                 {
-                    if !filter_file_name.eq(test_file_path) {
-                        return false;
-                    }
+                    return false;
                 }
                 if let Some(include) = &opts.include {
                     include.is_match(name)
@@ -605,23 +604,22 @@ fn run_tests(
                     divider_delim_len,
                     ..
                 } = child
+                    && should_skip(&child, opts)
                 {
-                    if should_skip(&child, opts) {
-                        let input = String::from_utf8(input.clone()).unwrap();
-                        let output = format_sexp(output, 0);
-                        corrected_entries.push((
-                            name.clone(),
-                            input,
-                            output,
-                            attributes_str.clone(),
-                            header_delim_len,
-                            divider_delim_len,
-                        ));
+                    let input = String::from_utf8(input.clone()).unwrap();
+                    let output = format_sexp(output, 0);
+                    corrected_entries.push((
+                        name.clone(),
+                        input,
+                        output,
+                        attributes_str.clone(),
+                        header_delim_len,
+                        divider_delim_len,
+                    ));
 
-                        opts.test_num += 1;
+                    opts.test_num += 1;
 
-                        continue;
-                    }
+                    continue;
                 }
                 if !has_printed && indent_level > 1 {
                     has_printed = true;
@@ -899,48 +897,48 @@ fn parse_test_content(name: String, content: &str, file_path: Option<PathBuf>) -
                 })
                 .max_by_key(|(_, range)| range.len());
 
-            if let Some((divider_delim_len, divider_range)) = divider_range {
-                if let Ok(output) = str::from_utf8(&bytes[divider_range.end..header_range.start]) {
-                    let mut input = bytes[prev_header_end..divider_range.start].to_vec();
+            if let Some((divider_delim_len, divider_range)) = divider_range
+                && let Ok(output) = str::from_utf8(&bytes[divider_range.end..header_range.start])
+            {
+                let mut input = bytes[prev_header_end..divider_range.start].to_vec();
 
-                    // Remove trailing newline from the input.
+                // Remove trailing newline from the input.
+                input.pop();
+                #[cfg(target_os = "windows")]
+                if input.last() == Some(&b'\r') {
                     input.pop();
-                    #[cfg(target_os = "windows")]
-                    if input.last() == Some(&b'\r') {
-                        input.pop();
-                    }
-
-                    // Remove all comments
-                    let output = COMMENT_REGEX.replace_all(output, "").to_string();
-
-                    // Normalize the whitespace in the expected output.
-                    let output = WHITESPACE_REGEX.replace_all(output.trim(), " ");
-                    let output = output.replace(" )", ")");
-
-                    // Identify if the expected output has fields indicated. If not, then
-                    // fields will not be checked.
-                    let has_fields = SEXP_FIELD_REGEX.is_match(&output);
-
-                    let file_name = if let Some(ref path) = file_path {
-                        path.file_name().map(|n| n.to_string_lossy().to_string())
-                    } else {
-                        None
-                    };
-
-                    let t = TestEntry::Example {
-                        name: prev_name,
-                        input,
-                        output,
-                        header_delim_len: prev_header_len,
-                        divider_delim_len,
-                        has_fields,
-                        attributes_str: prev_attributes_str,
-                        attributes: prev_attributes,
-                        file_name,
-                    };
-
-                    children.push(t);
                 }
+
+                // Remove all comments
+                let output = COMMENT_REGEX.replace_all(output, "").to_string();
+
+                // Normalize the whitespace in the expected output.
+                let output = WHITESPACE_REGEX.replace_all(output.trim(), " ");
+                let output = output.replace(" )", ")");
+
+                // Identify if the expected output has fields indicated. If not, then
+                // fields will not be checked.
+                let has_fields = SEXP_FIELD_REGEX.is_match(&output);
+
+                let file_name = if let Some(ref path) = file_path {
+                    path.file_name().map(|n| n.to_string_lossy().to_string())
+                } else {
+                    None
+                };
+
+                let t = TestEntry::Example {
+                    name: prev_name,
+                    input,
+                    output,
+                    header_delim_len: prev_header_len,
+                    divider_delim_len,
+                    has_fields,
+                    attributes_str: prev_attributes_str,
+                    attributes: prev_attributes,
+                    file_name,
+                };
+
+                children.push(t);
             }
         }
         prev_attributes = attributes;

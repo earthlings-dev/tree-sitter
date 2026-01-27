@@ -95,17 +95,17 @@ pub(super) fn extract_tokens(
             kind: SymbolType::Terminal,
             index,
         }) = variable.rule
+            && i > 0
+            && extractor.extracted_usage_counts[index] == 1
         {
-            if i > 0 && extractor.extracted_usage_counts[index] == 1 {
-                let lexical_variable = &mut lexical_variables[index];
-                if lexical_variable.kind == VariableType::Auxiliary
-                    || variable.kind != VariableType::Hidden
-                {
-                    lexical_variable.kind = variable.kind;
-                    lexical_variable.name = variable.name;
-                    symbol_replacer.replacements.insert(i, index);
-                    continue;
-                }
+            let lexical_variable = &mut lexical_variables[index];
+            if lexical_variable.kind == VariableType::Auxiliary
+                || variable.kind != VariableType::Hidden
+            {
+                lexical_variable.kind = variable.kind;
+                lexical_variable.name = variable.name;
+                symbol_replacer.replacements.insert(i, index);
+                continue;
             }
         }
         variables.push(variable);
@@ -181,8 +181,7 @@ pub(super) fn extract_tokens(
         }
     }
 
-    let mut word_token = None;
-    if let Some(token) = grammar.word_token {
+    let word_token = if let Some(token) = grammar.word_token {
         let token = symbol_replacer.replace_symbol(token);
         if token.is_non_terminal() {
             let word_token_variable = &variables[token.index];
@@ -197,8 +196,10 @@ pub(super) fn extract_tokens(
                 conflicting_symbol_name,
             }))?;
         }
-        word_token = Some(token);
-    }
+        Some(token)
+    } else {
+        None
+    };
 
     let mut reserved_word_contexts = Vec::with_capacity(grammar.reserved_word_sets.len());
     for reserved_word_context in grammar.reserved_word_sets {
@@ -280,10 +281,11 @@ impl TokenExtractor {
                     let mut params = params.clone();
                     params.is_token = false;
 
-                    let mut string_value = None;
-                    if let Rule::String(value) = rule.as_ref() {
-                        string_value = Some(value);
-                    }
+                    let string_value = if let Rule::String(value) = rule.as_ref() {
+                        Some(value)
+                    } else {
+                        None
+                    };
 
                     let rule_to_extract = if params == MetadataParams::default() {
                         rule.as_ref()
@@ -586,7 +588,10 @@ mod test {
 
         match extract_tokens(grammar) {
             Err(e) => {
-                assert_eq!(e.to_string(), "Rule 'rule_1' cannot be used as both an external token and a non-terminal rule");
+                assert_eq!(
+                    e.to_string(),
+                    "Rule 'rule_1' cannot be used as both an external token and a non-terminal rule"
+                );
             }
             _ => {
                 panic!("Expected an error but got no error");
@@ -622,11 +627,13 @@ mod test {
 
     #[test]
     fn test_extraction_with_empty_string() {
-        assert!(extract_tokens(build_grammar(vec![
-            Variable::named("rule_0", Rule::non_terminal(1)),
-            Variable::hidden("_rule_1", Rule::string("")),
-        ]))
-        .is_err());
+        assert!(
+            extract_tokens(build_grammar(vec![
+                Variable::named("rule_0", Rule::non_terminal(1)),
+                Variable::hidden("_rule_1", Rule::string("")),
+            ]))
+            .is_err()
+        );
     }
 
     fn build_grammar(variables: Vec<Variable>) -> InternedGrammar {

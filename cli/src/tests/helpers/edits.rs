@@ -30,7 +30,7 @@ impl<'a> ReadRecorder<'a> {
         let mut result = Vec::new();
         let mut last_range = Option::<Range<usize>>::None;
         for index in &self.indices_read {
-            if let Some(ref mut range) = &mut last_range {
+            if let Some(range) = &mut last_range {
                 if range.end == *index {
                     range.end += 1;
                 } else {

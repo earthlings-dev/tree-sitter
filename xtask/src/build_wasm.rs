@@ -8,14 +8,14 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use notify::{
-    event::{AccessKind, AccessMode},
     EventKind, RecursiveMode,
+    event::{AccessKind, AccessMode},
 };
 use notify_debouncer_full::new_debouncer;
 
-use crate::{bail_on_err, watch_wasm, BuildWasm, EMSCRIPTEN_TAG};
+use crate::{BuildWasm, EMSCRIPTEN_TAG, bail_on_err, watch_wasm};
 
 #[derive(PartialEq, Eq)]
 enum EmccSource {
@@ -96,7 +96,7 @@ pub fn run_wasm(args: &BuildWasm) -> Result<()> {
             #[cfg(unix)]
             {
                 #[link(name = "c")]
-                extern "C" {
+                unsafe extern "C" {
                     fn getuid() -> u32;
                 }
                 // don't need to set user for podman since PODMAN_USERNS=keep-id is already set

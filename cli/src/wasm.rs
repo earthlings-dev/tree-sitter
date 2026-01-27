@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use tree_sitter::wasm_stdlib_symbols;
 use tree_sitter_generate::{load_grammar_file, parse_grammar::GrammarJSON};
 use tree_sitter_loader::Loader;
@@ -88,13 +88,16 @@ pub fn compile_language_to_wasm(
     let parser = Parser::new(0);
     for payload in parser.parse_all(&wasm_bytes) {
         if let wasmparser::Payload::ImportSection(imports) = payload? {
-            for import in imports {
-                let import = import?.name;
-                if !builtin_symbols.contains(&import)
-                    && !stdlib_symbols.contains(&import)
-                    && !dylink_symbols.contains(&import)
-                {
-                    missing_symbols.push(import);
+            for import_group in imports {
+                for import in import_group? {
+                    let (_, import) = import?;
+                    let name = import.name;
+                    if !builtin_symbols.contains(&name)
+                        && !stdlib_symbols.contains(&name)
+                        && !dylink_symbols.contains(&name)
+                    {
+                        missing_symbols.push(name);
+                    }
                 }
             }
         }

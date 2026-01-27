@@ -1,6 +1,6 @@
 use std::{
     future::Future,
-    pin::{pin, Pin},
+    pin::{Pin, pin},
     ptr,
     task::{self, Context, Poll, RawWaker, RawWakerVTable, Waker},
 };

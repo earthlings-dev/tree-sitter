@@ -102,7 +102,7 @@ impl ChildQuantity {
         }
     }
 
-    fn append(&mut self, other: Self) {
+    const fn append(&mut self, other: Self) {
         if other.exists {
             if self.exists || other.multiple {
                 self.multiple = true;
@@ -114,7 +114,7 @@ impl ChildQuantity {
         }
     }
 
-    fn union(&mut self, other: Self) -> bool {
+    const fn union(&mut self, other: Self) -> bool {
         let mut result = false;
         if !self.exists && other.exists {
             result = true;
@@ -136,7 +136,9 @@ pub type VariableInfoResult<T> = Result<T, VariableInfoError>;
 
 #[derive(Debug, Error, Serialize)]
 pub enum VariableInfoError {
-    #[error("Grammar error: Supertype symbols must always have a single visible child, but `{0}` can have multiple")]
+    #[error(
+        "Grammar error: Supertype symbols must always have a single visible child, but `{0}` can have multiple"
+    )]
     InvalidSupertype(String),
 }
 
@@ -1858,8 +1860,10 @@ mod tests {
                         productions: vec![
                             Production {
                                 dynamic_precedence: 0,
-                                steps: vec![ProductionStep::new(Symbol::non_terminal(1))
-                                    .with_field_name("field1")],
+                                steps: vec![
+                                    ProductionStep::new(Symbol::non_terminal(1))
+                                        .with_field_name("field1"),
+                                ],
                             },
                             Production {
                                 dynamic_precedence: 0,

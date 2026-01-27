@@ -19,7 +19,7 @@ use crate::{
         random::Rand,
     },
     parse::perform_edit,
-    test::{parse_tests, print_diff, print_diff_key, strip_sexp_fields, TestEntry},
+    test::{TestEntry, parse_tests, print_diff, print_diff_key, strip_sexp_fields},
 };
 
 pub static LOG_ENABLED: LazyLock<bool> = LazyLock::new(|| env::var("TREE_SITTER_LOG").is_ok());
@@ -55,8 +55,8 @@ fn regex_env_var(name: &'static str) -> Option<Regex> {
 #[must_use]
 pub fn new_seed() -> usize {
     int_env_var("TREE_SITTER_SEED").unwrap_or_else(|| {
-        let mut rng = rand::thread_rng();
-        let seed = rng.gen::<usize>();
+        let mut rng = rand::rng();
+        let seed = rng.random_range(0..=usize::MAX);
         eprintln!("Seed: {seed}");
         seed
     })
@@ -89,9 +89,7 @@ pub fn fuzz_language_corpus(
                         .iter()
                         .any(|lang| lang.as_ref() == language_name)
             }
-            TestEntry::Group {
-                ref mut children, ..
-            } => {
+            TestEntry::Group { children, .. } => {
                 children.retain_mut(|child| retain(child, language_name));
                 !children.is_empty()
             }
@@ -103,20 +101,22 @@ pub fn fuzz_language_corpus(
     let corpus_dir = grammar_dir.join(subdir).join("test").join("corpus");
 
     if !corpus_dir.exists() || !corpus_dir.is_dir() {
-        eprintln!("No corpus directory found, ensure that you have a `test/corpus` directory in your grammar directory with at least one test file.");
+        eprintln!(
+            "No corpus directory found, ensure that you have a `test/corpus` directory in your grammar directory with at least one test file."
+        );
         return;
     }
 
     if std::fs::read_dir(&corpus_dir).unwrap().count() == 0 {
-        eprintln!("No corpus files found in `test/corpus`, ensure that you have at least one test file in your corpus directory.");
+        eprintln!(
+            "No corpus files found in `test/corpus`, ensure that you have at least one test file in your corpus directory."
+        );
         return;
     }
 
     let mut main_tests = parse_tests(&corpus_dir).unwrap();
-    match main_tests {
-        TestEntry::Group {
-            ref mut children, ..
-        } => {
+    match &mut main_tests {
+        TestEntry::Group { children, .. } => {
             children.retain_mut(|child| retain(child, language_name));
         }
         TestEntry::Example { .. } => unreachable!(),
@@ -354,10 +354,10 @@ pub fn flatten_tests(
                     if !include.is_match(&name) {
                         return;
                     }
-                } else if let Some(exclude) = exclude {
-                    if exclude.is_match(&name) {
-                        return;
-                    }
+                } else if let Some(exclude) = exclude
+                    && exclude.is_match(&name)
+                {
+                    return;
                 }
 
                 result.push(FlattenedTest {

@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf, process::Command};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use regex::Regex;
 use tree_sitter_loader::TreeSitterJSON;
 

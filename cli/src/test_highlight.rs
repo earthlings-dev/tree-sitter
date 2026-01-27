@@ -1,13 +1,13 @@
 use std::{fs, path::Path};
 
 use anstyle::AnsiColor;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use tree_sitter::Point;
 use tree_sitter_highlight::{Highlight, HighlightConfiguration, HighlightEvent, Highlighter};
 use tree_sitter_loader::{Config, Loader};
 
 use super::{
-    query_testing::{parse_position_comments, to_utf8_point, Assertion, Utf8Point},
+    query_testing::{Assertion, Utf8Point, parse_position_comments, to_utf8_point},
     test::paint,
     util,
 };
@@ -98,7 +98,12 @@ fn test_highlights_indented(
                 })?;
             let highlight_config = language_config
                 .highlight_config(language, None)?
-                .ok_or_else(|| anyhow!("No highlighting config found for {test_file_path:?}"))?;
+                .ok_or_else(|| {
+                    anyhow!(
+                        "No highlighting config found for {}",
+                        test_file_path.display()
+                    )
+                })?;
             match test_highlight(
                 loader,
                 highlighter,
@@ -133,11 +138,7 @@ fn test_highlights_indented(
         }
     }
 
-    if failed {
-        Err(anyhow!(""))
-    } else {
-        Ok(())
-    }
+    if failed { Err(anyhow!("")) } else { Ok(()) }
 }
 pub fn iterate_assertions(
     assertions: &[Assertion],

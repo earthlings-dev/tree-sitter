@@ -1,21 +1,26 @@
 use anyhow::Result;
 
-use crate::{bail_on_err, Benchmark};
+use crate::{Benchmark, bail_on_err};
 
 pub fn run(args: &Benchmark) -> Result<()> {
     if let Some(ref example) = args.example_file_name {
-        std::env::set_var("TREE_SITTER_BENCHMARK_EXAMPLE_FILTER", example);
+        // SAFETY: This is called at the start of the program before any threads are spawned.
+        unsafe { std::env::set_var("TREE_SITTER_BENCHMARK_EXAMPLE_FILTER", example) };
     }
 
     if let Some(ref language) = args.language {
-        std::env::set_var("TREE_SITTER_BENCHMARK_LANGUAGE_FILTER", language);
+        // SAFETY: This is called at the start of the program before any threads are spawned.
+        unsafe { std::env::set_var("TREE_SITTER_BENCHMARK_LANGUAGE_FILTER", language) };
     }
 
     if args.repetition_count != 5 {
-        std::env::set_var(
-            "TREE_SITTER_BENCHMARK_REPETITION_COUNT",
-            args.repetition_count.to_string(),
-        );
+        // SAFETY: This is called at the start of the program before any threads are spawned.
+        unsafe {
+            std::env::set_var(
+                "TREE_SITTER_BENCHMARK_REPETITION_COUNT",
+                args.repetition_count.to_string(),
+            );
+        }
     }
 
     if args.debug {

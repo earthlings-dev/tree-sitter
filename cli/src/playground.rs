@@ -6,7 +6,7 @@ use std::{
     str::{self, FromStr as _},
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use tiny_http::{Header, Response, Server};
 
 use super::wasm;

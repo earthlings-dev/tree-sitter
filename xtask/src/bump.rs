@@ -1,12 +1,12 @@
 use std::cmp::Ordering;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use git2::{DiffOptions, Repository};
 use indoc::indoc;
 use semver::{BuildMetadata, Prerelease, Version};
 use toml::Value;
 
-use crate::{create_commit, BumpVersion};
+use crate::{BumpVersion, create_commit};
 
 pub fn get_latest_tag(repo: &Repository) -> Result<String> {
     let mut tags = repo

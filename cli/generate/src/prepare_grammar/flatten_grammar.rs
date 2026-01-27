@@ -465,8 +465,10 @@ mod tests {
             result.productions,
             vec![Production {
                 dynamic_precedence: 0,
-                steps: vec![ProductionStep::new(Symbol::non_terminal(1))
-                    .with_prec(Precedence::Integer(101), Some(Associativity::Left)),]
+                steps: vec![
+                    ProductionStep::new(Symbol::non_terminal(1))
+                        .with_prec(Precedence::Integer(101), Some(Associativity::Left)),
+                ]
             }]
         );
     }

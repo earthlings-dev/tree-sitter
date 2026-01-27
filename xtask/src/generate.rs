@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, ffi::OsStr, fs, path::Path, process::Command, s
 use anyhow::{Context, Result};
 use bindgen::RustTarget;
 
-use crate::{bail_on_err, GenerateFixtures};
+use crate::{GenerateFixtures, bail_on_err};
 
 const HEADER_PATH: &str = "lib/include/tree_sitter/api.h";
 
@@ -24,7 +24,7 @@ pub fn run_fixtures(args: &GenerateFixtures) -> Result<()> {
         .join("fixtures")
         .join("grammars");
 
-    for grammar_file in find_grammar_files(grammars_dir.to_str().unwrap()).flatten() {
+    for grammar_file in find_grammar_files(grammars_dir).flatten() {
         let grammar_dir = grammar_file.parent().unwrap();
         let grammar_name = grammar_dir.file_name().and_then(OsStr::to_str).unwrap();
 
@@ -177,16 +177,17 @@ pub fn run_wasm_exports() -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn find_grammar_files(
-    dir: &str,
+    dir: std::path::PathBuf,
 ) -> impl Iterator<Item = Result<std::path::PathBuf, std::io::Error>> {
-    fs::read_dir(dir)
+    fs::read_dir(&dir)
         .expect("Failed to read directory")
         .filter_map(Result::ok)
         .flat_map(|entry| {
             let path = entry.path();
             if path.is_dir() && !path.to_string_lossy().contains("node_modules") {
-                Box::new(find_grammar_files(path.to_str().unwrap())) as Box<dyn Iterator<Item = _>>
+                Box::new(find_grammar_files(path)) as Box<dyn Iterator<Item = _>>
             } else if path.is_file() && path.file_name() == Some(OsStr::new("grammar.js")) {
                 Box::new(std::iter::once(Ok(path))) as _
             } else {

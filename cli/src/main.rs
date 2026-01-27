@@ -5,22 +5,22 @@ use std::{
 };
 
 use anstyle::{AnsiColor, Color, Style};
-use anyhow::{anyhow, Context, Result};
-use clap::{crate_authors, Args, Command, FromArgMatches as _, Subcommand, ValueEnum};
+use anyhow::{Context, Result, anyhow};
+use clap::{Args, Command, FromArgMatches as _, Subcommand, ValueEnum, crate_authors};
 use clap_complete::generate;
-use dialoguer::{theme::ColorfulTheme, Confirm, FuzzySelect, Input};
+use dialoguer::{Confirm, FuzzySelect, Input, theme::ColorfulTheme};
 use heck::ToUpperCamelCase;
 use regex::Regex;
 use semver::Version as SemverVersion;
-use tree_sitter::{ffi, Parser, Point};
+use tree_sitter::{Parser, Point, ffi};
 use tree_sitter_cli::{
     fuzz::{
-        fuzz_language_corpus, FuzzOptions, EDIT_COUNT, ITERATION_COUNT, LOG_ENABLED,
-        LOG_GRAPH_ENABLED, START_SEED,
+        EDIT_COUNT, FuzzOptions, ITERATION_COUNT, LOG_ENABLED, LOG_GRAPH_ENABLED, START_SEED,
+        fuzz_language_corpus,
     },
     highlight::{self, HighlightOptions},
-    init::{generate_grammar_files, get_root_path, JsonConfigOpts},
-    input::{get_input, get_tmp_source_file, CliInput},
+    init::{JsonConfigOpts, generate_grammar_files, get_root_path},
+    input::{CliInput, get_input, get_tmp_source_file},
     logger,
     parse::{self, ParseDebugType, ParseFileOptions, ParseOutput, ParseTheme},
     playground, query,
@@ -722,7 +722,7 @@ impl Init {
 
                 let idx = FuzzySelect::with_theme(&ColorfulTheme::default())
                     .with_prompt("Which field would you like to change?")
-                    .items(&choices)
+                    .items(choices)
                     .interact()?;
 
                 set_choice!(choices[idx]);
@@ -1674,10 +1674,10 @@ fn main() {
     let result = run();
     if let Err(err) = &result {
         // Ignore BrokenPipe errors
-        if let Some(error) = err.downcast_ref::<std::io::Error>() {
-            if error.kind() == std::io::ErrorKind::BrokenPipe {
-                return;
-            }
+        if let Some(error) = err.downcast_ref::<std::io::Error>()
+            && error.kind() == std::io::ErrorKind::BrokenPipe
+        {
+            return;
         }
         if !err.to_string().is_empty() {
             eprintln!("{err:?}");

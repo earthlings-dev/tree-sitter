@@ -729,11 +729,7 @@ fn test_parsing_cancelled_by_another_thread() {
         &mut |offset, _| {
             thread::yield_now();
             thread::sleep(time::Duration::from_millis(10));
-            if offset == 0 {
-                b" ["
-            } else {
-                b"0,"
-            }
+            if offset == 0 { b" [" } else { b"0," }
         },
         None,
         Some(ParseOptions::new().progress_callback(callback)),
@@ -756,11 +752,7 @@ fn test_parsing_with_a_timeout() {
     let start_time = time::Instant::now();
     let tree = parser.parse_with_options(
         &mut |offset, _| {
-            if offset == 0 {
-                b" ["
-            } else {
-                b",0"
-            }
+            if offset == 0 { b" [" } else { b",0" }
         },
         None,
         Some(
@@ -774,11 +766,7 @@ fn test_parsing_with_a_timeout() {
     let start_time = time::Instant::now();
     let tree = parser.parse_with_options(
         &mut |offset, _| {
-            if offset == 0 {
-                b" ["
-            } else {
-                b",0"
-            }
+            if offset == 0 { b" [" } else { b",0" }
         },
         None,
         Some(
@@ -1915,8 +1903,9 @@ fn test_decode_utf24le() {
 
 #[test]
 fn test_grammars_that_should_not_compile() {
-    assert!(generate_parser(
-        r#"
+    assert!(
+        generate_parser(
+            r#"
         {
             "name": "issue_1111",
             "rules": {
@@ -1924,11 +1913,13 @@ fn test_grammars_that_should_not_compile() {
             },
         }
         "#
-    )
-    .is_err());
+        )
+        .is_err()
+    );
 
-    assert!(generate_parser(
-        r#"
+    assert!(
+        generate_parser(
+            r#"
         {
             "name": "issue_1271",
             "rules": {
@@ -1943,11 +1934,13 @@ fn test_grammars_that_should_not_compile() {
             },
         }
         "#
-    )
-    .is_err());
+        )
+        .is_err()
+    );
 
-    assert!(generate_parser(
-        r#"
+    assert!(
+        generate_parser(
+            r#"
         {
             "name": "issue_1156_expl_1",
             "rules": {
@@ -1961,11 +1954,13 @@ fn test_grammars_that_should_not_compile() {
             },
         }
         "#
-    )
-    .is_err());
+        )
+        .is_err()
+    );
 
-    assert!(generate_parser(
-        r#"
+    assert!(
+        generate_parser(
+            r#"
         {
             "name": "issue_1156_expl_2",
             "rules": {
@@ -1982,11 +1977,13 @@ fn test_grammars_that_should_not_compile() {
             },
         }
         "#
-    )
-    .is_err());
+        )
+        .is_err()
+    );
 
-    assert!(generate_parser(
-        r#"
+    assert!(
+        generate_parser(
+            r#"
         {
             "name": "issue_1156_expl_3",
             "rules": {
@@ -2000,11 +1997,13 @@ fn test_grammars_that_should_not_compile() {
             },
         }
         "#
-    )
-    .is_err());
+        )
+        .is_err()
+    );
 
-    assert!(generate_parser(
-        r#"
+    assert!(
+        generate_parser(
+            r#"
         {
             "name": "issue_1156_expl_4",
             "rules": {
@@ -2021,8 +2020,9 @@ fn test_grammars_that_should_not_compile() {
             },
         }
         "#
-    )
-    .is_err());
+        )
+        .is_err()
+    );
 }
 
 const fn simple_range(start: usize, end: usize) -> Range {

@@ -60,15 +60,15 @@ pub enum Rule {
     Pattern(String, String),
     NamedSymbol(String),
     Symbol(Symbol),
-    Choice(Vec<Rule>),
+    Choice(Vec<Self>),
     Metadata {
         params: MetadataParams,
-        rule: Box<Rule>,
+        rule: Box<Self>,
     },
-    Repeat(Box<Rule>),
-    Seq(Vec<Rule>),
+    Repeat(Box<Self>),
+    Seq(Vec<Self>),
     Reserved {
-        rule: Box<Rule>,
+        rule: Box<Self>,
         context_name: String,
     },
 }
@@ -411,7 +411,7 @@ impl TokenSet {
                     true
                 } else {
                     false
-                }
+                };
             }
             SymbolType::EndOfNonTerminalExtra => {
                 return if self.end_of_nonterminal_extra {

@@ -1,5 +1,5 @@
 use rand::{
-    distributions::Alphanumeric,
+    distr::Alphanumeric,
     prelude::{Rng, SeedableRng, StdRng},
 };
 
@@ -16,7 +16,7 @@ impl Rand {
     }
 
     pub fn unsigned(&mut self, max: usize) -> usize {
-        self.0.gen_range(0..=max)
+        self.0.random_range(0..=max)
     }
 
     pub fn words(&mut self, max_count: usize) -> Vec<u8> {

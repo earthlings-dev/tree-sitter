@@ -1,12 +1,12 @@
 use std::{fs, path::Path};
 
 use anstyle::AnsiColor;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use tree_sitter_loader::{Config, Loader};
 use tree_sitter_tags::{TagsConfiguration, TagsContext};
 
 use super::{
-    query_testing::{parse_position_comments, to_utf8_point, Assertion, Utf8Point},
+    query_testing::{Assertion, Utf8Point, parse_position_comments, to_utf8_point},
     test::paint,
     util,
 };
@@ -97,7 +97,7 @@ pub fn test_tags_indented(
                 })?;
             let tags_config = language_config
                 .tags_config(language)?
-                .ok_or_else(|| anyhow!("No tags config found for {test_file_path:?}"))?;
+                .ok_or_else(|| anyhow!("No tags config found for {}", test_file_path.display()))?;
             match test_tag(
                 tags_context,
                 tags_config,
@@ -131,11 +131,7 @@ pub fn test_tags_indented(
         }
     }
 
-    if failed {
-        Err(anyhow!(""))
-    } else {
-        Ok(())
-    }
+    if failed { Err(anyhow!("")) } else { Ok(()) }
 }
 
 pub fn test_tag(

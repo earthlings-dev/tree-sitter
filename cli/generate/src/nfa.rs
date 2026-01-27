@@ -1,6 +1,6 @@
 use std::{
     char,
-    cmp::{max, Ordering},
+    cmp::{Ordering, max},
     fmt,
     iter::ExactSizeIterator,
     mem::{self, swap},
@@ -301,7 +301,7 @@ impl CharacterSet {
         self.char_codes().filter_map(char::from_u32)
     }
 
-    pub fn range_count(&self) -> usize {
+    pub const fn range_count(&self) -> usize {
         self.ranges.len()
     }
 
@@ -313,7 +313,7 @@ impl CharacterSet {
         })
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.ranges.is_empty()
     }
 
@@ -333,13 +333,12 @@ impl CharacterSet {
                             return None;
                         }
 
-                        if let Some(prev_range) = &mut prev_range {
-                            if ruled_out_characters
+                        if let Some(prev_range) = &mut prev_range
+                            && ruled_out_characters
                                 .contains_codepoint_range(prev_range.end..range.start)
-                            {
-                                prev_range.end = range.end;
-                                return None;
-                            }
+                        {
+                            prev_range.end = range.end;
+                            return None;
                         }
                     }
 
@@ -433,7 +432,7 @@ impl Nfa {
         Self { states: Vec::new() }
     }
 
-    pub fn last_state_id(&self) -> u32 {
+    pub const fn last_state_id(&self) -> u32 {
         self.states.len() as u32 - 1
     }
 }

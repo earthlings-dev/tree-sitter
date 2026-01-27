@@ -9,8 +9,8 @@ use std::{
     mem::{self, MaybeUninit},
     ops, str,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         LazyLock,
+        atomic::{AtomicUsize, Ordering},
     },
 };
 
@@ -18,8 +18,8 @@ pub use c_lib as c;
 use streaming_iterator::StreamingIterator;
 use thiserror::Error;
 use tree_sitter::{
-    ffi, Language, LossyUtf8, Node, ParseOptions, Parser, Point, Query, QueryCapture,
-    QueryCaptures, QueryCursor, QueryError, QueryMatch, Range, TextProvider, Tree,
+    Language, LossyUtf8, Node, ParseOptions, Parser, Point, Query, QueryCapture, QueryCaptures,
+    QueryCursor, QueryError, QueryMatch, Range, TextProvider, Tree, ffi,
 };
 
 const CANCELLATION_CHECK_INTERVAL: usize = 100;
@@ -275,7 +275,7 @@ impl Highlighter {
         }
     }
 
-    pub fn parser(&mut self) -> &mut Parser {
+    pub const fn parser(&mut self) -> &mut Parser {
         &mut self.parser
     }
 
@@ -529,11 +529,7 @@ impl<'a> HighlightIterLayer<'a> {
                     .parser
                     .parse_with_options(
                         &mut |i, _| {
-                            if i < source.len() {
-                                &source[i..]
-                            } else {
-                                &[]
-                            }
+                            if i < source.len() { &source[i..] } else { &[] }
                         },
                         None,
                         Some(ParseOptions::new().progress_callback(&mut |_| {
@@ -572,16 +568,13 @@ impl<'a> HighlightIterLayer<'a> {
                     }
                     for (lang_name, content_nodes, includes_children) in injections_by_pattern_index
                     {
-                        if let (Some(lang_name), false) = (lang_name, content_nodes.is_empty()) {
-                            if let Some(next_config) = (injection_callback)(lang_name) {
-                                let ranges = Self::intersect_ranges(
-                                    &ranges,
-                                    &content_nodes,
-                                    includes_children,
-                                );
-                                if !ranges.is_empty() {
-                                    queue.push((next_config, depth + 1, ranges));
-                                }
+                        if let (Some(lang_name), false) = (lang_name, content_nodes.is_empty())
+                            && let Some(next_config) = (injection_callback)(lang_name)
+                        {
+                            let ranges =
+                                Self::intersect_ranges(&ranges, &content_nodes, includes_children);
+                            if !ranges.is_empty() {
+                                queue.push((next_config, depth + 1, ranges));
                             }
                         }
                     }
@@ -778,11 +771,11 @@ where
             if let Some(sort_key) = self.layers[0].sort_key() {
                 let mut i = 0;
                 while i + 1 < self.layers.len() {
-                    if let Some(next_offset) = self.layers[i + 1].sort_key() {
-                        if next_offset < sort_key {
-                            i += 1;
-                            continue;
-                        }
+                    if let Some(next_offset) = self.layers[i + 1].sort_key()
+                        && next_offset < sort_key
+                    {
+                        i += 1;
+                        continue;
                     }
                     break;
                 }
@@ -864,11 +857,11 @@ where
                 // If any previous highlight ends before this node starts, then before
                 // processing this capture, emit the source code up until the end of the
                 // previous highlight, and an end event for that highlight.
-                if let Some(end_byte) = layer.highlight_end_stack.last().copied() {
-                    if end_byte <= range.start {
-                        layer.highlight_end_stack.pop();
-                        return self.emit_event(end_byte, Some(HighlightEvent::HighlightEnd));
-                    }
+                if let Some(end_byte) = layer.highlight_end_stack.last().copied()
+                    && end_byte <= range.start
+                {
+                    layer.highlight_end_stack.pop();
+                    return self.emit_event(end_byte, Some(HighlightEvent::HighlightEnd));
                 }
             }
             // If there are no more captures, then emit any remaining highlight end events.
@@ -900,31 +893,31 @@ where
 
                 // If a language is found with the given name, then add a new language layer
                 // to the highlighted document.
-                if let (Some(language_name), Some(content_node)) = (language_name, content_node) {
-                    if let Some(config) = (self.injection_callback)(language_name) {
-                        let ranges = HighlightIterLayer::intersect_ranges(
-                            &self.layers[0].ranges,
-                            &[content_node],
-                            include_children,
-                        );
-                        if !ranges.is_empty() {
-                            match HighlightIterLayer::new(
-                                self.source,
-                                Some(self.language_name),
-                                self.highlighter,
-                                self.cancellation_flag,
-                                &mut self.injection_callback,
-                                config,
-                                self.layers[0].depth + 1,
-                                ranges,
-                            ) {
-                                Ok(layers) => {
-                                    for layer in layers {
-                                        self.insert_layer(layer);
-                                    }
+                if let (Some(language_name), Some(content_node)) = (language_name, content_node)
+                    && let Some(config) = (self.injection_callback)(language_name)
+                {
+                    let ranges = HighlightIterLayer::intersect_ranges(
+                        &self.layers[0].ranges,
+                        &[content_node],
+                        include_children,
+                    );
+                    if !ranges.is_empty() {
+                        match HighlightIterLayer::new(
+                            self.source,
+                            Some(self.language_name),
+                            self.highlighter,
+                            self.cancellation_flag,
+                            &mut self.injection_callback,
+                            config,
+                            self.layers[0].depth + 1,
+                            ranges,
+                        ) {
+                            Ok(layers) => {
+                                for layer in layers {
+                                    self.insert_layer(layer);
                                 }
-                                Err(e) => return Some(Err(e)),
                             }
+                            Err(e) => return Some(Err(e)),
                         }
                     }
                 }
@@ -1026,11 +1019,13 @@ where
             // Otherwise, this capture must represent a highlight.
             // If this exact range has already been highlighted by an earlier pattern, or by
             // a different layer, then skip over this one.
-            if let Some((last_start, last_end, last_depth)) = self.last_highlight_range {
-                if range.start == last_start && range.end == last_end && layer.depth < last_depth {
-                    self.sort_layers();
-                    continue 'main;
-                }
+            if let Some((last_start, last_end, last_depth)) = self.last_highlight_range
+                && range.start == last_start
+                && range.end == last_end
+                && layer.depth < last_depth
+            {
+                self.sort_layers();
+                continue 'main;
             }
 
             // Once a highlighting pattern is found for the current node, keep iterating over
@@ -1098,7 +1093,7 @@ impl HtmlRenderer {
         result
     }
 
-    pub fn set_carriage_return_highlight(&mut self, highlight: Option<Highlight>) {
+    pub const fn set_carriage_return_highlight(&mut self, highlight: Option<Highlight>) {
         self.carriage_return_highlight = highlight;
     }
 
@@ -1214,10 +1209,10 @@ impl HtmlRenderer {
                 self.last_carriage_return = Some(self.html.len());
                 continue;
             }
-            if let Some(offset) = self.last_carriage_return.take() {
-                if c != b'\n' {
-                    self.add_carriage_return(offset, attribute_callback);
-                }
+            if let Some(offset) = self.last_carriage_return.take()
+                && c != b'\n'
+            {
+                self.add_carriage_return(offset, attribute_callback);
             }
 
             // At line boundaries, close and re-open all of the open tags.
