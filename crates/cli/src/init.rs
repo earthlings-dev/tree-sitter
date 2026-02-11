@@ -9,7 +9,7 @@ use crc32fast::hash as crc32;
 use heck::{ToKebabCase, ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase};
 use indoc::{formatdoc, indoc};
 use log::info;
-use rand::{thread_rng, Rng};
+use rand::Rng;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -1452,7 +1452,7 @@ fn generate_file(
     }
 
     if filename == "build.zig.zon" {
-        let id = thread_rng().gen_range(1u32..0xFFFF_FFFFu32);
+        let id = rand::rng().random_range(1u32..0xFFFF_FFFFu32);
         let checksum = crc32(format!("tree_sitter_{language_name}").as_bytes());
         replacement = replacement.replace(
             PARSER_FINGERPRINT_PLACEHOLDER,

@@ -1,7 +1,13 @@
 {
   description = "Tree-sitter - A parser generator tool and an incremental parsing library";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
 
   outputs =
     inputs:
@@ -317,38 +323,48 @@
         system:
         let
           pkgs = pkgsFor.${system};
+          fenixPkgs = inputs.fenix.packages.${system};
+          rustToolchain = fenixPkgs.stable.withComponents [
+            "cargo"
+            "clippy"
+            "rust-analyzer"
+            "rust-src"
+            "rustc"
+            "llvm-tools-preview"
+          ];
         in
         {
           default = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              cargo
-              rustc
-              clippy
-              rust-analyzer
-              rustfmt
-              cargo-llvm-cov
+            buildInputs = [
+              rustToolchain
+              fenixPkgs.latest.rustfmt
+              pkgs.cargo-llvm-cov
 
-              cmake
-              gnumake
-              pkg-config
-              llvm
-              clang
-              clang-tools
-              libclang
+              pkgs.cmake
+              pkgs.gnumake
+              pkgs.pkg-config
+              pkgs.llvm
+              pkgs.clang
+              pkgs.clang-tools
+              pkgs.libclang
 
-              nodejs_22
-              nodePackages.typescript
-              emscripten
-              pkgsCross.wasi32.stdenv.cc
+              pkgs.nodejs_22
+              pkgs.nodePackages.typescript
+              pkgs.emscripten
+              pkgs.pkgsCross.wasi32.stdenv.cc
 
-              mdbook
-              mdbook-admonish
+              pkgs.mdbook
+              pkgs.mdbook-admonish
 
-              git
-              nixfmt
+              pkgs.git
+              pkgs.nixfmt
             ];
 
             shellHook = ''
+              # Prevent system LD_LIBRARY_PATH from breaking Nix-built binaries
+              # (e.g. Intel oneAPI, /opt/openssl paths interfere with RUNPATH resolution)
+              unset LD_LIBRARY_PATH
+
               export PATH="${pkgs.clang-tools}/bin:$PATH"
               echo "Tree-sitter Dev Environment"
               echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
