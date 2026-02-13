@@ -209,7 +209,7 @@
                 echo "→ Nix..."
                 ${lib.getExe pkgs.nixfmt} ${filesWithExtension "nix"}
                 echo "→ Web (TypeScript/JavaScript)..."
-                cd lib/binding_web && ${pkgs.nodejs_22}/bin/npm install --silent && ${pkgs.nodejs_22}/bin/npm run lint:fix
+                cd lib/binding_web && ${lib.getExe pkgs.bun} install && ${lib.getExe pkgs.bun} run lint:fix
                 cd ../..
                 echo ""
                 echo "Formatting complete"
@@ -232,7 +232,7 @@
                 echo "→ Checking Nix formatting..."
                 ${lib.getExe pkgs.nixfmt} --check ${filesWithExtension "nix"}
                 echo "→ Checking Web code..."
-                cd lib/binding_web && ${lib.getExe' pkgs.nodejs_22 "npm"} install --silent && ${lib.getExe' pkgs.nodejs_22 "npm"} run lint
+                cd lib/binding_web && ${lib.getExe pkgs.bun} install && ${lib.getExe pkgs.bun} run lint
                 cd ../..
                 echo ""
                 echo "Linting complete"
@@ -292,20 +292,17 @@
             doCheck = false;
           };
 
-          web-lint = pkgs.buildNpmPackage {
+          web-lint = pkgs.stdenv.mkDerivation {
             inherit src version;
 
             pname = "web-tree-sitter-lint";
 
-            npmDepsHash = "sha256-y0GobcskcZTmju90TM64GjeWiBmPFCrTOg0yfccdB+Q=";
-
-            postPatch = ''
-              cp lib/binding_web/package{,-lock}.json .
-            '';
+            nativeBuildInputs = [ pkgs.bun ];
 
             buildPhase = ''
               cd lib/binding_web
-              npm run lint
+              bun install
+              bun run lint
             '';
 
             installPhase = ''
@@ -332,6 +329,27 @@
             "rustc"
             "llvm-tools-preview"
           ];
+
+          # Override emscripten to use LLVM 22, which provides the
+          # --filter-child-tag (-t) flag in llvm-dwarfdump that
+          # emscripten 4.0.23's wasm-sourcemap.py requires.
+          emscripten = (pkgs.emscripten.override {
+            llvmPackages = pkgs.llvmPackages_22;
+          }).overrideAttrs (prev: {
+            buildPhase = builtins.replaceStrings
+              [
+                # Remove LLVM 21 version downgrade (LLVM 22 matches emscripten's expectation)
+                "sed -i -e \"s/EXPECTED_LLVM_VERSION = 22/EXPECTED_LLVM_VERSION = 21.1/g\" tools/shared.py"
+                # Remove LLVM 21 version verification
+                "grep -q \"EXPECTED_LLVM_VERSION = 21.1\" tools/shared.py"
+                # Remove --no-stack-first workaround (LLVM 22 has --stack-first as default)
+                "sed -i \"s/cmd.append('--no-stack-first')/pass/\" tools/building.py"
+                # Remove --no-stack-first verification
+                "grep -q \"cmd.append('--no-stack-first')\" tools/building.py"
+              ]
+              [ "true" "true" "true" "true" ]
+              prev.buildPhase;
+          });
         in
         {
           default = pkgs.mkShell {
@@ -348,9 +366,10 @@
               pkgs.clang-tools
               pkgs.libclang
 
+              pkgs.bun
               pkgs.nodejs_22
               pkgs.nodePackages.typescript
-              pkgs.emscripten
+              emscripten
               pkgs.pkgsCross.wasi32.stdenv.cc
 
               pkgs.mdbook

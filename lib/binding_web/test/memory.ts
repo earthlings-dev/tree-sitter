@@ -1,20 +1,8 @@
-import { EventEmitter } from 'events';
-import { Session } from 'inspector';
-
-const session = new Session();
-session.connect();
-
 export function gc() {
-  session.post('HeapProfiler.collectGarbage');
-}
-
-export const event = new EventEmitter();
-
-export class Finalizer<T> extends FinalizationRegistry<T> {
-  constructor(handler: (value: T) => void) {
-    super((value) => {
-      handler(value);
-      event.emit('gc');
-    });
-  }
+  // Multiple synchronous full-GC passes are needed because JSC's
+  // FinalizationRegistry processing is deferred: a first pass collects
+  // leaf objects (e.g. TreeCursor), and a subsequent pass collects
+  // objects that were only kept alive by those leaves (e.g. Tree).
+  Bun.gc(true);
+  Bun.gc(true);
 }

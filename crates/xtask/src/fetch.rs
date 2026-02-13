@@ -1,5 +1,6 @@
-use crate::{bail_on_err, root_dir, EMSCRIPTEN_VERSION};
+use crate::{EMSCRIPTEN_VERSION, bail_on_err, root_dir};
 use anyhow::Result;
+use serde_json::Value;
 use std::{fs, path::Path, process::Command};
 
 enum FixtureRef<'a> {
@@ -181,9 +182,173 @@ pub fn run_fixtures() -> Result<()> {
                 );
             }
         }
+
+        patch_fixture_package_json(&grammar_dir);
     }
 
     Ok(())
+}
+
+fn patch_package_json_value(pkg: &mut Value) {
+    let Some(obj) = pkg.as_object_mut() else {
+        return;
+    };
+
+    obj.insert("type".to_string(), Value::String("module".to_string()));
+    obj.insert(
+        "engines".to_string(),
+        serde_json::json!({ "bun": ">=1.3.9" }),
+    );
+
+    if let Some(Value::Object(scripts)) = obj.get_mut("scripts") {
+        for value in scripts.values_mut() {
+            if let Value::String(s) = value
+                && s.starts_with("node --test")
+            {
+                *s = s.replacen("node --test", "bun test", 1);
+            }
+        }
+    }
+}
+
+fn patch_fixture_package_json(grammar_dir: &Path) {
+    // Patch root package.json
+    let package_json_path = grammar_dir.join("package.json");
+    if package_json_path.exists()
+        && let Ok(content) = fs::read_to_string(&package_json_path)
+        && let Ok(mut pkg) = serde_json::from_str::<Value>(&content)
+    {
+        patch_package_json_value(&mut pkg);
+        if let Ok(updated) = serde_json::to_string_pretty(&pkg) {
+            let _ = fs::write(&package_json_path, updated + "\n");
+        }
+    }
+
+    // Rewrite binding test files to ESM/bun:test
+    patch_fixture_binding_tests(grammar_dir);
+
+    // Delete package-lock.json
+    let lock_path = grammar_dir.join("package-lock.json");
+    if lock_path.exists() {
+        let _ = fs::remove_file(&lock_path);
+    }
+
+    // Patch sub-package.json files (multi-grammar repos like php, typescript)
+    if let Ok(entries) = fs::read_dir(grammar_dir) {
+        for entry in entries.flatten() {
+            if entry.path().is_dir() {
+                let sub_pkg_path = entry.path().join("package.json");
+                if sub_pkg_path.exists()
+                    && let Ok(content) = fs::read_to_string(&sub_pkg_path)
+                    && let Ok(mut pkg) = serde_json::from_str::<Value>(&content)
+                    && pkg.get("private").and_then(Value::as_bool) == Some(true)
+                {
+                    patch_package_json_value(&mut pkg);
+                    if let Ok(updated) = serde_json::to_string_pretty(&pkg) {
+                        let _ = fs::write(&sub_pkg_path, updated + "\n");
+                    }
+                }
+
+                // Delete sub-directory package-lock.json too
+                let sub_lock_path = entry.path().join("package-lock.json");
+                if sub_lock_path.exists() {
+                    let _ = fs::remove_file(&sub_lock_path);
+                }
+            }
+        }
+    }
+}
+
+/// Rewrite `bindings/node/binding_test.js` files from CJS/node:test to ESM/bun:test.
+///
+/// Handles three upstream patterns:
+/// 1. Standard single-grammar tests (12 grammars) — single `test("can load grammar", ...)`
+/// 2. PHP multi-grammar test — `describe`/`it` with named exports `{ php, php_only }`
+/// 3. TypeScript multi-grammar test — two `test()` calls requiring `./typescript` and `./tsx`
+fn patch_fixture_binding_tests(grammar_dir: &Path) {
+    let test_path = grammar_dir.join("bindings/node/binding_test.js");
+    let Ok(content) = fs::read_to_string(&test_path) else {
+        return;
+    };
+
+    // Skip if already using bun:test
+    if content.contains("bun:test") {
+        return;
+    }
+
+    // Only patch files that use node:test
+    if !content.contains("node:test") {
+        return;
+    }
+
+    let patched = if content.contains("php_only") {
+        // PHP multi-grammar pattern
+        r#"import { describe, it, expect } from "bun:test";
+import Parser from "tree-sitter";
+
+const { php, php_only } = await import("../../index.js");
+
+describe("PHP", () => {
+  const parser = new Parser();
+  parser.setLanguage(php);
+
+  it("should be named php", () => {
+    expect(parser.getLanguage().name).toBe("php");
+  });
+
+  it("should parse source code", () => {
+    const sourceCode = "<?php echo 'Hello, World!';";
+    const tree = parser.parse(sourceCode);
+    expect(tree.rootNode.hasError).toBe(false);
+  });
+});
+
+describe("PHP Only", () => {
+  const parser = new Parser();
+  parser.setLanguage(php_only);
+
+  it("should be named php_only", () => {
+    expect(parser.getLanguage().name).toBe("php_only");
+  });
+
+  it("should parse source code", () => {
+    const sourceCode = "echo 'Hello, World!';";
+    const tree = parser.parse(sourceCode);
+    expect(tree.rootNode.hasError).toBe(false);
+  });
+});
+"#
+    } else if content.contains("./typescript") || content.contains("./tsx") {
+        // TypeScript multi-grammar pattern
+        r#"import { test, expect } from "bun:test";
+import Parser from "tree-sitter";
+
+test("can load TypeScript grammar", async () => {
+  const parser = new Parser();
+  const { default: language } = await import("./typescript/index.js");
+  expect(() => parser.setLanguage(language)).not.toThrow();
+});
+
+test("can load TSX grammar", async () => {
+  const parser = new Parser();
+  const { default: language } = await import("./tsx/index.js");
+  expect(() => parser.setLanguage(language)).not.toThrow();
+});
+"#
+    } else {
+        // Standard single-grammar pattern (most common)
+        r#"import { test, expect } from "bun:test";
+import Parser from "tree-sitter";
+
+test("can load grammar", async () => {
+  const parser = new Parser();
+  const { default: language } = await import("./index.js");
+  expect(() => parser.setLanguage(language)).not.toThrow();
+});
+"#
+    };
+
+    let _ = fs::write(&test_path, patched);
 }
 
 pub fn run_emscripten() -> Result<()> {

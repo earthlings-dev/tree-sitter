@@ -6,8 +6,8 @@ use std::{
 
 use log::{error, info, warn};
 use rquickjs::{
-    loader::{FileResolver, ScriptLoader},
     Context, Ctx, Function, Module, Object, Runtime, Type, Value,
+    loader::{FileResolver, ScriptLoader},
 };
 
 use super::{IoError, JSError, JSResult};

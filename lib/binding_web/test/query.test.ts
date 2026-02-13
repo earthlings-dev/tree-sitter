@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'bun:test';
 import type { Language, Tree, QueryMatch, QueryCapture } from '../src';
 import { Parser, Query } from '../src';
 import helper from './helper';
@@ -64,7 +64,7 @@ describe('Query', () => {
   });
 
   describe('.matches', () => {
-    it('returns all of the matches for the given query', { timeout: 10000 }, () => {
+    it('returns all of the matches for the given query', () => {
       tree = parser.parse('function one() { two(); function three() {} }')!;
       query = new Query(JavaScript, `
         (function_declaration name: (identifier) @fn-def)
@@ -585,7 +585,7 @@ describe('Query', () => {
     });
   });
 
-  describe('Executes with a timeout', { timeout: 10000 }, () => {
+  describe('Executes with a timeout', () => {
     it('Returns less than the expected matches', () => {
       tree = parser.parse('function foo() while (true) { } }\n'.repeat(1000))!;
       query = new Query(JavaScript, '(function_declaration) @function');
@@ -612,18 +612,15 @@ describe('Query', () => {
 });
 
 // Helper functions
-function formatMatches(matches: QueryMatch[]): Omit<QueryMatch, 'pattern'>[] {
+type FormattedCapture = Omit<QueryCapture, 'node'> & { text: string };
+
+function formatMatches(matches: QueryMatch[]): { patternIndex: number; captures: FormattedCapture[] }[] {
   return matches.map(({ patternIndex, captures }) => ({
     patternIndex,
     captures: formatCaptures(captures),
   }));
 }
 
-function formatCaptures(captures: QueryCapture[]): (QueryCapture & { text: string })[] {
-  return captures.map((c) => {
-    const node = c.node;
-    // @ts-expect-error We're not interested in the node object for these tests
-    delete c.node;
-    return { ...c, text: node.text };
-  });
+function formatCaptures(captures: QueryCapture[]): FormattedCapture[] {
+  return captures.map(({ node, ...rest }) => ({ ...rest, text: node.text }));
 }

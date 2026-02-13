@@ -109,13 +109,9 @@ jobs:
         echo "EMSDK=$PWD" >> "$GITHUB_ENV"
         echo "EMSDK_NODE=$PWD/node/$(ls node)/bin/node" >> "$GITHUB_ENV"
 
-    - name: Set up Node.js
+    - name: Set up Bun
       if: contains(matrix.features, 'wasm') && (matrix.run-wasm-test || !inputs.run-test)
-      uses: actions/setup-node@v4
-      with:
-        node-version: 24
-        cache: npm
-        cache-dependency-path: lib/binding_web/package-lock.json
+      uses: oven-sh/setup-bun@v2
 
     - name: Set up Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -232,11 +228,9 @@ jobs:
       shell: bash
       run: |
         cd lib/binding_web
-        npm ci
-        CJS=true npm run build
-        CJS=true npm run build:debug
-        npm run build
-        npm run build:debug
+        bun install
+        bun run build
+        bun run build:debug
 
     - name: Check no_std builds
       if: inputs.run-test && !matrix.no-run
@@ -292,12 +286,8 @@ jobs:
         path: |
           lib/binding_web/web-tree-sitter.js
           lib/binding_web/web-tree-sitter.js.map
-          lib/binding_web/web-tree-sitter.cjs
-          lib/binding_web/web-tree-sitter.cjs.map
           lib/binding_web/web-tree-sitter.wasm
           lib/binding_web/web-tree-sitter.wasm.map
-          lib/binding_web/debug/web-tree-sitter.cjs
-          lib/binding_web/debug/web-tree-sitter.cjs.map
           lib/binding_web/debug/web-tree-sitter.js
           lib/binding_web/debug/web-tree-sitter.js.map
           lib/binding_web/debug/web-tree-sitter.wasm

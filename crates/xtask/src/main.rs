@@ -14,7 +14,7 @@ use std::{path::Path, process::Command};
 
 use anstyle::{AnsiColor, Color, Style};
 use anyhow::Result;
-use clap::{crate_authors, Args, FromArgMatches as _, Subcommand};
+use clap::{Args, FromArgMatches as _, Subcommand, crate_authors};
 use semver::Version;
 
 #[derive(Subcommand)]
@@ -89,9 +89,6 @@ struct BuildWasm {
     /// requires `tsc` to be available.
     #[arg(long, short)]
     emit_tsd: bool,
-    /// Generate `CommonJS` modules instead of ES modules.
-    #[arg(long, short, env = "CJS")]
-    cjs: bool,
 }
 
 #[derive(Args)]
@@ -181,10 +178,10 @@ fn main() {
     let result = run();
     if let Err(err) = &result {
         // Ignore BrokenPipe errors
-        if let Some(error) = err.downcast_ref::<std::io::Error>() {
-            if error.kind() == std::io::ErrorKind::BrokenPipe {
-                return;
-            }
+        if let Some(error) = err.downcast_ref::<std::io::Error>()
+            && error.kind() == std::io::ErrorKind::BrokenPipe
+        {
+            return;
         }
         if !err.to_string().is_empty() {
             eprintln!("{err:?}");

@@ -1,11 +1,8 @@
-import assert from "node:assert";
-import { test } from "node:test";
+import { test, expect } from "bun:test";
 import Parser from "tree-sitter";
 
-test("can load grammar", () => {
+test("can load grammar", async () => {
   const parser = new Parser();
-  assert.doesNotReject(async () => {
-    const { default: language } = await import("./index.js");
-    parser.setLanguage(language);
-  });
+  const { default: language } = await import("./index.js");
+  expect(() => parser.setLanguage(language)).not.toThrow();
 });

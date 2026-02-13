@@ -1,8 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { gc, event, Finalizer } from './memory';
-
-// hijack finalization registry before import web-tree-sitter
-globalThis.FinalizationRegistry = Finalizer;
+import { describe, expect, it } from 'bun:test';
+import { gc } from './memory';
+import { onFinalize } from '../src/finalization_registry';
 
 describe('Memory Management', () => {
   describe('call .delete()', () => {
@@ -10,8 +8,8 @@ describe('Memory Management', () => {
       const timer = setInterval(() => {
         gc();
       }, 100);
-      let done = 0; 
-      event.on('gc', () => {
+      let done = 0;
+      const teardown = onFinalize(() => {
         done++;
       });
       await (async () => {
@@ -36,6 +34,7 @@ describe('Memory Management', () => {
       // wait for gc
       await new Promise((resolve) => setTimeout(resolve, 1000));
       clearInterval(timer);
+      teardown();
       // expect no gc event fired
       expect(done).toBe(0);
     });
@@ -47,10 +46,11 @@ describe('Memory Management', () => {
         gc();
       }, 100);
       let done = 0;
-      const promise = new Promise((resolve) => {
-        event.on('gc', () => {
+      const promise = new Promise<void>((resolve) => {
+        const teardown = onFinalize(() => {
           if (++done === 7) {
-            resolve(undefined);
+            resolve();
+            teardown();
             clearInterval(timer);
           }
           console.log('free memory times: ', done);
@@ -69,6 +69,6 @@ describe('Memory Management', () => {
         new Query(JavaScript, '(identifier) @element'); // 7
       })();
       await promise;
-    });
+    }, 30_000);
   });
 });

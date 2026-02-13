@@ -30,8 +30,8 @@ connection. If you have Emscripten installed, this will use your `emcc` compiler
 
 ```sh
 cd lib/binding_web
-npm install # or your JS package manager of choice
-npm run build
+bun install
+bun run build
 ```
 
 Build the Rust libraries and the CLI:

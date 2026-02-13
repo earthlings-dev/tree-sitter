@@ -32,16 +32,16 @@ mod render;
 mod rules;
 mod tables;
 
-use build_tables::build_tables;
 pub use build_tables::ParseTableBuilderError;
+use build_tables::build_tables;
 use grammars::{InlinedProductionMap, InputGrammar, LexicalGrammar, SyntaxGrammar};
 pub use node_types::{SuperTypeCycleError, VariableInfoError};
-use parse_grammar::parse_grammar;
 pub use parse_grammar::ParseGrammarError;
-use prepare_grammar::prepare_grammar;
+use parse_grammar::parse_grammar;
 pub use prepare_grammar::PrepareGrammarError;
+use prepare_grammar::prepare_grammar;
 use render::render_c_code;
-pub use render::{RenderError, ABI_VERSION_MAX, ABI_VERSION_MIN};
+pub use render::{ABI_VERSION_MAX, ABI_VERSION_MIN, RenderError};
 
 static JSON_COMMENT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     RegexBuilder::new("^\\s*//.*")

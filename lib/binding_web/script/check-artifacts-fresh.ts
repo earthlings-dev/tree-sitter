@@ -28,7 +28,7 @@ const outputMtime = Math.min(...outputFiles.map(getMtime));
 
 for (const inputFile of inputFiles) {
   if (getMtime(inputFile) > outputMtime) {
-    console.log(`File '${inputFile}' has changed. Re-run 'npm run build:wasm'.`);
+    console.log(`File '${inputFile}' has changed. Re-run 'bun run build:wasm'.`);
     process.exit(1);
   }
 }

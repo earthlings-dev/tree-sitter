@@ -172,10 +172,10 @@ impl Interner<'_> {
         }
 
         for (i, external_token) in self.grammar.external_tokens.iter().enumerate() {
-            if let Rule::NamedSymbol(name) = external_token {
-                if name == symbol {
-                    return Some(Symbol::external(i));
-                }
+            if let Rule::NamedSymbol(name) = external_token
+                && name == symbol
+            {
+                return Some(Symbol::external(i));
             }
         }
 

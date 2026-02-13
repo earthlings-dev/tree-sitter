@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'bun:test';
 import helper, { type LanguageName } from './helper';
 import type { ParseState, Tree } from '../src';
 import { Parser, Language } from '../src';
@@ -54,7 +54,7 @@ describe('Parser', () => {
         'consume character:\'b\'',
         'reduce sym:program, child_count:1',
         'accept'
-      ]));
+      ]) as string[]);
     });
 
     it('allows the callback to be retrieved later', () => {
@@ -256,7 +256,7 @@ describe('Parser', () => {
       expect(() => parser.parse({})).toThrow('Argument must be a string or a function');
     });
 
-    it('handles long input strings', { timeout: 10000 }, () => {
+    it('handles long input strings', () => {
       const repeatCount = 10000;
       const inputString = `[${Array(repeatCount).fill('0').join(',')}]`;
 
@@ -265,7 +265,7 @@ describe('Parser', () => {
       expect(tree.rootNode.firstChild!.firstChild!.namedChildCount).toBe(repeatCount);
     });
 
-    it('can use the bash parser', { timeout: 5000 }, async () => {
+    it('can use the bash parser', async () => {
       parser.setLanguage(await Language.load(languageURL('bash')));
       tree = parser.parse('FOO=bar echo <<EOF 2> err.txt > hello.txt \nhello${FOO}\nEOF')!;
       expect(tree.rootNode.toString()).toBe(
@@ -282,7 +282,7 @@ describe('Parser', () => {
       );
     });
 
-    it('can use the c++ parser', { timeout: 5000 }, async () => {
+    it('can use the c++ parser', async () => {
       parser.setLanguage(await Language.load(languageURL('cpp')));
       tree = parser.parse('const char *s = R"EOF(HELLO WORLD)EOF";')!;
       expect(tree.rootNode.toString()).toBe(
@@ -295,7 +295,7 @@ describe('Parser', () => {
       );
     });
 
-    it('can use the HTML parser', { timeout: 5000 }, async () => {
+    it('can use the HTML parser', async () => {
       parser.setLanguage(await Language.load(languageURL('html')));
       tree = parser.parse('<div><span><custom></custom></span></div>')!;
       expect(tree.rootNode.toString()).toBe(
@@ -304,7 +304,7 @@ describe('Parser', () => {
       );
     });
 
-    it('can use the python parser', { timeout: 5000 }, async () => {
+    it('can use the python parser', async () => {
       parser.setLanguage(await Language.load(languageURL('python')));
       tree = parser.parse('class A:\n  def b():\n    c()')!;
       expect(tree.rootNode.toString()).toBe(
@@ -320,7 +320,7 @@ describe('Parser', () => {
       );
     });
 
-    it('can use the rust parser', { timeout: 5000 }, async () => {
+    it('can use the rust parser', async () => {
       parser.setLanguage(await Language.load(languageURL('rust')));
       tree = parser.parse('const x: &\'static str = r###"hello"###;')!;
       expect(tree.rootNode.toString()).toBe(
@@ -331,7 +331,7 @@ describe('Parser', () => {
       );
     });
 
-    it('can use the typescript parser', { timeout: 5000 }, async () => {
+    it('can use the typescript parser', async () => {
       parser.setLanguage(await Language.load(languageURL('typescript')));
       tree = parser.parse('a()\nb()\n[c]')!;
       expect(tree.rootNode.toString()).toBe(
@@ -345,7 +345,7 @@ describe('Parser', () => {
       );
     });
 
-    it('can use the tsx parser', { timeout: 5000 }, async () => {
+    it('can use the tsx parser', async () => {
       parser.setLanguage(await Language.load(languageURL('tsx')));
       tree = parser.parse('a()\nb()\n[c]')!;
       expect(tree.rootNode.toString()).toBe(
@@ -392,7 +392,7 @@ describe('Parser', () => {
       );
     });
 
-    it('parses with a timeout', { timeout: 5000 }, () => {
+    it('parses with a timeout', () => {
       parser.setLanguage(JSON);
 
       const startTime = performance.now();
@@ -414,7 +414,7 @@ describe('Parser', () => {
       )).toBeNull();
     });
 
-    it('times out when an error is detected', { timeout: 5000 }, () => {
+    it('times out when an error is detected', () => {
       parser.setLanguage(JSON);
 
       let offset = 0;

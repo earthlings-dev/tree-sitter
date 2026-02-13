@@ -110,6 +110,9 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
@@ -117,12 +120,10 @@ jobs:
         if: matrix.directory == 'lib/binding_web'
         run: |
           cd ${{ matrix.directory }}
-          npm ci
-          npm run build
-          npm run build:debug
-          CJS=true npm run build
-          CJS=true npm run build:debug
-          npm run build:dts
+          bun install
+          bun run build
+          bun run build:debug
+          bun run build:dts
 
       - name: Publish to npmjs.com
         working-directory: ${{ matrix.directory }}

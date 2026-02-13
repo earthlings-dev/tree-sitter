@@ -34,6 +34,9 @@ jobs:
           toolchain: stable
           components: clippy, rustfmt
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Lint files
         run: |
           make lint

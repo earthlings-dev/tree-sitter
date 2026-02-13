@@ -1,4 +1,4 @@
-import { describe, it } from 'vitest';
+import { describe, it } from 'bun:test';
 
 describe('FinalizationRegistry is unsupported', () => {
   it('test FinalizationRegistry is unsupported', async () => {

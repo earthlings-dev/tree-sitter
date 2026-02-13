@@ -5,23 +5,23 @@ use std::{
 };
 
 use anstyle::{AnsiColor, Color, Style};
-use anyhow::{anyhow, Context, Result};
-use clap::{crate_authors, Args, Command, FromArgMatches as _, Subcommand, ValueEnum};
+use anyhow::{Context, Result, anyhow};
+use clap::{Args, Command, FromArgMatches as _, Subcommand, ValueEnum, crate_authors};
 use clap_complete::generate;
-use dialoguer::{theme::ColorfulTheme, Confirm, FuzzySelect, Input, MultiSelect};
+use dialoguer::{Confirm, FuzzySelect, Input, MultiSelect, theme::ColorfulTheme};
 use heck::ToUpperCamelCase;
 use log::{error, info, warn};
 use regex::Regex;
 use semver::Version as SemverVersion;
-use tree_sitter::{ffi, Parser, Point};
+use tree_sitter::{Parser, Point, ffi};
 use tree_sitter_cli::{
     fuzz::{
-        fuzz_language_corpus, FuzzOptions, DEFAULT_EDIT_COUNT, DEFAULT_ITERATION_COUNT, EDIT_COUNT,
-        ITERATION_COUNT, LOG_ENABLED, LOG_GRAPH_ENABLED, START_SEED,
+        DEFAULT_EDIT_COUNT, DEFAULT_ITERATION_COUNT, EDIT_COUNT, FuzzOptions, ITERATION_COUNT,
+        LOG_ENABLED, LOG_GRAPH_ENABLED, START_SEED, fuzz_language_corpus,
     },
     highlight::{self, HighlightOptions},
-    init::{generate_grammar_files, JsonConfigOpts, TREE_SITTER_JSON_SCHEMA},
-    input::{get_input, get_tmp_source_file, CliInput},
+    init::{JsonConfigOpts, TREE_SITTER_JSON_SCHEMA, generate_grammar_files},
+    input::{CliInput, get_input, get_tmp_source_file},
     logger,
     parse::{self, ParseDebugType, ParseFileOptions, ParseOutput, ParseTheme},
     playground,
@@ -2001,10 +2001,10 @@ fn main() {
     let result = run();
     if let Err(err) = &result {
         // Ignore BrokenPipe errors
-        if let Some(error) = err.downcast_ref::<std::io::Error>() {
-            if error.kind() == std::io::ErrorKind::BrokenPipe {
-                return;
-            }
+        if let Some(error) = err.downcast_ref::<std::io::Error>()
+            && error.kind() == std::io::ErrorKind::BrokenPipe
+        {
+            return;
         }
         if !err.to_string().is_empty() {
             error!("{err:?}");

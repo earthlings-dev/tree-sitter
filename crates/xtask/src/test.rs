@@ -4,10 +4,10 @@ use std::{
     process::{Command, Stdio},
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use regex::Regex;
 
-use crate::{bail_on_err, Test};
+use crate::{Test, bail_on_err};
 
 pub fn run(args: &Test) -> Result<()> {
     let test_flags = if args.address_sanitizer {
@@ -133,21 +133,21 @@ pub fn run_wasm() -> Result<()> {
     std::env::set_current_dir("lib/binding_web")?;
 
     let node_modules_dir = Path::new("node_modules");
-    let npm = if cfg!(target_os = "windows") {
-        "npm.cmd"
+    let bun = if cfg!(target_os = "windows") {
+        "bun.exe"
     } else {
-        "npm"
+        "bun"
     };
 
-    if !node_modules_dir.join("chai").exists() || !node_modules_dir.join("mocha").exists() {
+    if !node_modules_dir.exists() {
         println!("Installing test dependencies...");
-        let output = Command::new(npm).arg("install").output()?;
+        let output = Command::new(bun).arg("install").output()?;
         bail_on_err(&output, "Failed to install test dependencies")?;
     }
 
-    let child = Command::new(npm).arg("test").spawn()?;
+    let child = Command::new(bun).arg("test").spawn()?;
     let output = child.wait_with_output()?;
-    bail_on_err(&output, &format!("Failed to run `{npm} test`"))?;
+    bail_on_err(&output, &format!("Failed to run `{bun} test`"))?;
 
     // Display test results
     let output = String::from_utf8_lossy(&output.stdout);

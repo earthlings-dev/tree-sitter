@@ -10,7 +10,7 @@ extern crate alloc;
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, format, string::String, string::ToString, vec::Vec};
 use core::{
-    ffi::{c_char, c_void, CStr},
+    ffi::{CStr, c_char, c_void},
     fmt::{self, Write},
     hash, iter,
     marker::PhantomData,
@@ -136,7 +136,7 @@ impl InputEdit {
             ffi::ts_point_edit(
                 core::ptr::addr_of_mut!(ts_point),
                 core::ptr::addr_of_mut!(ts_byte),
-                &edit,
+                &raw const edit,
             );
         }
 
@@ -155,7 +155,7 @@ impl InputEdit {
         let mut ts_range = (*range).into();
 
         unsafe {
-            ffi::ts_range_edit(core::ptr::addr_of_mut!(ts_range), &edit);
+            ffi::ts_range_edit(core::ptr::addr_of_mut!(ts_range), &raw const edit);
         }
 
         *range = ts_range.into();
@@ -776,8 +776,8 @@ impl Parser {
                 c_log_type: ffi::TSLogType,
                 c_message: *const c_char,
             ) {
-                let callback = payload.cast::<Logger>().as_mut().unwrap();
-                if let Ok(message) = CStr::from_ptr(c_message).to_str() {
+                let callback = unsafe { payload.cast::<Logger>().as_mut().unwrap() };
+                if let Ok(message) = unsafe { CStr::from_ptr(c_message) }.to_str() {
                     let log_type = if c_log_type == ffi::TSLogTypeParse {
                         LogType::Parse
                     } else {
@@ -884,14 +884,16 @@ impl Parser {
 
         // This C function is passed to Tree-sitter as the progress callback.
         unsafe extern "C" fn progress(state: *mut ffi::TSParseState) -> bool {
-            let callback = (*state)
-                .payload
-                .cast::<ParseProgressCallback>()
-                .as_mut()
-                .unwrap();
-            match callback(&ParseState::from_raw(state)) {
-                ControlFlow::Continue(()) => false,
-                ControlFlow::Break(()) => true,
+            unsafe {
+                let callback = (*state)
+                    .payload
+                    .cast::<ParseProgressCallback>()
+                    .as_mut()
+                    .unwrap();
+                match callback(&ParseState::from_raw(state)) {
+                    ControlFlow::Continue(()) => false,
+                    ControlFlow::Break(()) => true,
+                }
             }
         }
 
@@ -902,11 +904,13 @@ impl Parser {
             position: ffi::TSPoint,
             bytes_read: *mut u32,
         ) -> *const c_char {
-            let (callback, text) = payload.cast::<Payload<F, T>>().as_mut().unwrap();
-            *text = Some(callback(byte_offset as usize, position.into()));
-            let slice = text.as_ref().unwrap().as_ref();
-            *bytes_read = slice.len() as u32;
-            slice.as_ptr().cast::<c_char>()
+            unsafe {
+                let (callback, text) = payload.cast::<Payload<F, T>>().as_mut().unwrap();
+                *text = Some(callback(byte_offset as usize, position.into()));
+                let slice = text.as_ref().unwrap().as_ref();
+                *bytes_read = slice.len() as u32;
+                slice.as_ptr().cast::<c_char>()
+            }
         }
 
         let empty_options = ffi::TSParseOptions {
@@ -997,14 +1001,16 @@ impl Parser {
         type Payload<'a, F, T> = (&'a mut F, Option<T>);
 
         unsafe extern "C" fn progress(state: *mut ffi::TSParseState) -> bool {
-            let callback = (*state)
-                .payload
-                .cast::<ParseProgressCallback>()
-                .as_mut()
-                .unwrap();
-            match callback(&ParseState::from_raw(state)) {
-                ControlFlow::Continue(()) => false,
-                ControlFlow::Break(()) => true,
+            unsafe {
+                let callback = (*state)
+                    .payload
+                    .cast::<ParseProgressCallback>()
+                    .as_mut()
+                    .unwrap();
+                match callback(&ParseState::from_raw(state)) {
+                    ControlFlow::Continue(()) => false,
+                    ControlFlow::Break(()) => true,
+                }
             }
         }
 
@@ -1015,17 +1021,19 @@ impl Parser {
             position: ffi::TSPoint,
             bytes_read: *mut u32,
         ) -> *const c_char {
-            let (callback, text) = payload.cast::<Payload<F, T>>().as_mut().unwrap();
-            *text = Some(callback(
-                (byte_offset / 2) as usize,
-                Point {
-                    row: position.row as usize,
-                    column: position.column as usize / 2,
-                },
-            ));
-            let slice = text.as_ref().unwrap().as_ref();
-            *bytes_read = slice.len() as u32 * 2;
-            slice.as_ptr().cast::<c_char>()
+            unsafe {
+                let (callback, text) = payload.cast::<Payload<F, T>>().as_mut().unwrap();
+                *text = Some(callback(
+                    (byte_offset / 2) as usize,
+                    Point {
+                        row: position.row as usize,
+                        column: position.column as usize / 2,
+                    },
+                ));
+                let slice = text.as_ref().unwrap().as_ref();
+                *bytes_read = slice.len() as u32 * 2;
+                slice.as_ptr().cast::<c_char>()
+            }
         }
 
         let empty_options = ffi::TSParseOptions {
@@ -1117,14 +1125,16 @@ impl Parser {
 
         // This C function is passed to Tree-sitter as the progress callback.
         unsafe extern "C" fn progress(state: *mut ffi::TSParseState) -> bool {
-            let callback = (*state)
-                .payload
-                .cast::<ParseProgressCallback>()
-                .as_mut()
-                .unwrap();
-            match callback(&ParseState::from_raw(state)) {
-                ControlFlow::Continue(()) => false,
-                ControlFlow::Break(()) => true,
+            unsafe {
+                let callback = (*state)
+                    .payload
+                    .cast::<ParseProgressCallback>()
+                    .as_mut()
+                    .unwrap();
+                match callback(&ParseState::from_raw(state)) {
+                    ControlFlow::Continue(()) => false,
+                    ControlFlow::Break(()) => true,
+                }
             }
         }
 
@@ -1135,17 +1145,19 @@ impl Parser {
             position: ffi::TSPoint,
             bytes_read: *mut u32,
         ) -> *const c_char {
-            let (callback, text) = payload.cast::<Payload<F, T>>().as_mut().unwrap();
-            *text = Some(callback(
-                (byte_offset / 2) as usize,
-                Point {
-                    row: position.row as usize,
-                    column: position.column as usize / 2,
-                },
-            ));
-            let slice = text.as_ref().unwrap().as_ref();
-            *bytes_read = slice.len() as u32 * 2;
-            slice.as_ptr().cast::<c_char>()
+            unsafe {
+                let (callback, text) = payload.cast::<Payload<F, T>>().as_mut().unwrap();
+                *text = Some(callback(
+                    (byte_offset / 2) as usize,
+                    Point {
+                        row: position.row as usize,
+                        column: position.column as usize / 2,
+                    },
+                ));
+                let slice = text.as_ref().unwrap().as_ref();
+                *bytes_read = slice.len() as u32 * 2;
+                slice.as_ptr().cast::<c_char>()
+            }
         }
 
         let empty_options = ffi::TSParseOptions {
@@ -1220,14 +1232,16 @@ impl Parser {
         type Payload<'a, F, T> = (&'a mut F, Option<T>);
 
         unsafe extern "C" fn progress(state: *mut ffi::TSParseState) -> bool {
-            let callback = (*state)
-                .payload
-                .cast::<ParseProgressCallback>()
-                .as_mut()
-                .unwrap();
-            match callback(&ParseState::from_raw(state)) {
-                ControlFlow::Continue(()) => false,
-                ControlFlow::Break(()) => true,
+            unsafe {
+                let callback = (*state)
+                    .payload
+                    .cast::<ParseProgressCallback>()
+                    .as_mut()
+                    .unwrap();
+                match callback(&ParseState::from_raw(state)) {
+                    ControlFlow::Continue(()) => false,
+                    ControlFlow::Break(()) => true,
+                }
             }
         }
 
@@ -1237,8 +1251,8 @@ impl Parser {
             len: u32,
             code_point: *mut i32,
         ) -> u32 {
-            let (c, len) = D::decode(core::slice::from_raw_parts(data, len as usize));
-            if let Some(code_point) = code_point.as_mut() {
+            let (c, len) = D::decode(unsafe { core::slice::from_raw_parts(data, len as usize) });
+            if let Some(code_point) = unsafe { code_point.as_mut() } {
                 *code_point = c;
             }
             len
@@ -1251,11 +1265,13 @@ impl Parser {
             position: ffi::TSPoint,
             bytes_read: *mut u32,
         ) -> *const c_char {
-            let (callback, text) = payload.cast::<Payload<F, T>>().as_mut().unwrap();
-            *text = Some(callback(byte_offset as usize, position.into()));
-            let slice = text.as_ref().unwrap().as_ref();
-            *bytes_read = slice.len() as u32;
-            slice.as_ptr().cast::<c_char>()
+            unsafe {
+                let (callback, text) = payload.cast::<Payload<F, T>>().as_mut().unwrap();
+                *text = Some(callback(byte_offset as usize, position.into()));
+                let slice = text.as_ref().unwrap().as_ref();
+                *bytes_read = slice.len() as u32;
+                slice.as_ptr().cast::<c_char>()
+            }
         }
 
         let empty_options = ffi::TSParseOptions {
@@ -1368,8 +1384,8 @@ impl Parser {
             let ptr =
                 ffi::ts_parser_included_ranges(self.0.as_ptr(), core::ptr::addr_of_mut!(count));
             let ranges = slice::from_raw_parts(ptr, count as usize);
-            let result = ranges.iter().copied().map(Into::into).collect();
-            result
+
+            ranges.iter().copied().map(Into::into).collect()
         }
     }
 }
@@ -1387,7 +1403,7 @@ impl Drop for Parser {
 }
 
 #[cfg(windows)]
-extern "C" {
+unsafe extern "C" {
     fn _open_osfhandle(osfhandle: isize, flags: core::ffi::c_int) -> core::ffi::c_int;
 }
 
@@ -1432,7 +1448,7 @@ impl Tree {
     #[doc(alias = "ts_tree_edit")]
     pub fn edit(&mut self, edit: &InputEdit) {
         let edit = edit.into();
-        unsafe { ffi::ts_tree_edit(self.0.as_ptr(), &edit) };
+        unsafe { ffi::ts_tree_edit(self.0.as_ptr(), &raw const edit) };
     }
 
     /// Create a new [`TreeCursor`] starting from the root of the tree.
@@ -2035,7 +2051,7 @@ impl<'tree> Node<'tree> {
     #[doc(alias = "ts_node_edit")]
     pub fn edit(&mut self, edit: &InputEdit) {
         let edit = edit.into();
-        unsafe { ffi::ts_node_edit(core::ptr::addr_of_mut!(self.0), &edit) }
+        unsafe { ffi::ts_node_edit(core::ptr::addr_of_mut!(self.0), &raw const edit) }
     }
 }
 
@@ -2088,7 +2104,7 @@ impl<'tree> TreeCursor<'tree> {
     #[must_use]
     pub fn node(&self) -> Node<'tree> {
         Node(
-            unsafe { ffi::ts_tree_cursor_current_node(&self.0) },
+            unsafe { ffi::ts_tree_cursor_current_node(&raw const self.0) },
             PhantomData,
         )
     }
@@ -2099,7 +2115,7 @@ impl<'tree> TreeCursor<'tree> {
     #[doc(alias = "ts_tree_cursor_current_field_id")]
     #[must_use]
     pub fn field_id(&self) -> Option<FieldId> {
-        let id = unsafe { ffi::ts_tree_cursor_current_field_id(&self.0) };
+        let id = unsafe { ffi::ts_tree_cursor_current_field_id(&raw const self.0) };
         FieldId::new(id)
     }
 
@@ -2108,7 +2124,7 @@ impl<'tree> TreeCursor<'tree> {
     #[must_use]
     pub fn field_name(&self) -> Option<&'static str> {
         unsafe {
-            let ptr = ffi::ts_tree_cursor_current_field_name(&self.0);
+            let ptr = ffi::ts_tree_cursor_current_field_name(&raw const self.0);
             (!ptr.is_null()).then(|| CStr::from_ptr(ptr).to_str().unwrap())
         }
     }
@@ -2118,7 +2134,7 @@ impl<'tree> TreeCursor<'tree> {
     #[doc(alias = "ts_tree_cursor_current_depth")]
     #[must_use]
     pub fn depth(&self) -> u32 {
-        unsafe { ffi::ts_tree_cursor_current_depth(&self.0) }
+        unsafe { ffi::ts_tree_cursor_current_depth(&raw const self.0) }
     }
 
     /// Get the index of the cursor's current node out of all of the
@@ -2126,7 +2142,7 @@ impl<'tree> TreeCursor<'tree> {
     #[doc(alias = "ts_tree_cursor_current_descendant_index")]
     #[must_use]
     pub fn descendant_index(&self) -> usize {
-        unsafe { ffi::ts_tree_cursor_current_descendant_index(&self.0) as usize }
+        unsafe { ffi::ts_tree_cursor_current_descendant_index(&raw const self.0) as usize }
     }
 
     /// Move this cursor to the first child of its current node.
@@ -2135,7 +2151,7 @@ impl<'tree> TreeCursor<'tree> {
     /// `false` if there were no children.
     #[doc(alias = "ts_tree_cursor_goto_first_child")]
     pub fn goto_first_child(&mut self) -> bool {
-        unsafe { ffi::ts_tree_cursor_goto_first_child(&mut self.0) }
+        unsafe { ffi::ts_tree_cursor_goto_first_child(&raw mut self.0) }
     }
 
     /// Move this cursor to the last child of its current node.
@@ -2148,7 +2164,7 @@ impl<'tree> TreeCursor<'tree> {
     /// iterate through all the children to compute the child's position.
     #[doc(alias = "ts_tree_cursor_goto_last_child")]
     pub fn goto_last_child(&mut self) -> bool {
-        unsafe { ffi::ts_tree_cursor_goto_last_child(&mut self.0) }
+        unsafe { ffi::ts_tree_cursor_goto_last_child(&raw mut self.0) }
     }
 
     /// Move this cursor to the parent of its current node.
@@ -2161,7 +2177,7 @@ impl<'tree> TreeCursor<'tree> {
     /// of the cursor, and the cursor cannot walk outside this node.
     #[doc(alias = "ts_tree_cursor_goto_parent")]
     pub fn goto_parent(&mut self) -> bool {
-        unsafe { ffi::ts_tree_cursor_goto_parent(&mut self.0) }
+        unsafe { ffi::ts_tree_cursor_goto_parent(&raw mut self.0) }
     }
 
     /// Move this cursor to the next sibling of its current node.
@@ -2173,7 +2189,7 @@ impl<'tree> TreeCursor<'tree> {
     /// of the cursor, and the cursor cannot walk outside this node.
     #[doc(alias = "ts_tree_cursor_goto_next_sibling")]
     pub fn goto_next_sibling(&mut self) -> bool {
-        unsafe { ffi::ts_tree_cursor_goto_next_sibling(&mut self.0) }
+        unsafe { ffi::ts_tree_cursor_goto_next_sibling(&raw mut self.0) }
     }
 
     /// Move the cursor to the node that is the nth descendant of
@@ -2181,7 +2197,7 @@ impl<'tree> TreeCursor<'tree> {
     /// zero represents the original node itself.
     #[doc(alias = "ts_tree_cursor_goto_descendant")]
     pub fn goto_descendant(&mut self, descendant_index: usize) {
-        unsafe { ffi::ts_tree_cursor_goto_descendant(&mut self.0, descendant_index as u32) }
+        unsafe { ffi::ts_tree_cursor_goto_descendant(&raw mut self.0, descendant_index as u32) }
     }
 
     /// Move this cursor to the previous sibling of its current node.
@@ -2197,7 +2213,7 @@ impl<'tree> TreeCursor<'tree> {
     /// considered the root of the cursor, and the cursor cannot walk outside this node.
     #[doc(alias = "ts_tree_cursor_goto_previous_sibling")]
     pub fn goto_previous_sibling(&mut self) -> bool {
-        unsafe { ffi::ts_tree_cursor_goto_previous_sibling(&mut self.0) }
+        unsafe { ffi::ts_tree_cursor_goto_previous_sibling(&raw mut self.0) }
     }
 
     /// Move this cursor to the first child of its current node that contains or
@@ -2208,7 +2224,7 @@ impl<'tree> TreeCursor<'tree> {
     #[doc(alias = "ts_tree_cursor_goto_first_child_for_byte")]
     pub fn goto_first_child_for_byte(&mut self, index: usize) -> Option<usize> {
         let result =
-            unsafe { ffi::ts_tree_cursor_goto_first_child_for_byte(&mut self.0, index as u32) };
+            unsafe { ffi::ts_tree_cursor_goto_first_child_for_byte(&raw mut self.0, index as u32) };
         result.try_into().ok()
     }
 
@@ -2219,8 +2235,9 @@ impl<'tree> TreeCursor<'tree> {
     /// `None` if no such child was found.
     #[doc(alias = "ts_tree_cursor_goto_first_child_for_point")]
     pub fn goto_first_child_for_point(&mut self, point: Point) -> Option<usize> {
-        let result =
-            unsafe { ffi::ts_tree_cursor_goto_first_child_for_point(&mut self.0, point.into()) };
+        let result = unsafe {
+            ffi::ts_tree_cursor_goto_first_child_for_point(&raw mut self.0, point.into())
+        };
         result.try_into().ok()
     }
 
@@ -2228,7 +2245,7 @@ impl<'tree> TreeCursor<'tree> {
     /// cursor was constructed with.
     #[doc(alias = "ts_tree_cursor_reset")]
     pub fn reset(&mut self, node: Node<'tree>) {
-        unsafe { ffi::ts_tree_cursor_reset(&mut self.0, node.0) };
+        unsafe { ffi::ts_tree_cursor_reset(&raw mut self.0, node.0) };
     }
 
     /// Re-initialize a tree cursor to the same position as another cursor.
@@ -2237,19 +2254,22 @@ impl<'tree> TreeCursor<'tree> {
     /// information and allows reusing already created cursors.
     #[doc(alias = "ts_tree_cursor_reset_to")]
     pub fn reset_to(&mut self, cursor: &Self) {
-        unsafe { ffi::ts_tree_cursor_reset_to(&mut self.0, &cursor.0) };
+        unsafe { ffi::ts_tree_cursor_reset_to(&raw mut self.0, &raw const cursor.0) };
     }
 }
 
 impl Clone for TreeCursor<'_> {
     fn clone(&self) -> Self {
-        TreeCursor(unsafe { ffi::ts_tree_cursor_copy(&self.0) }, PhantomData)
+        TreeCursor(
+            unsafe { ffi::ts_tree_cursor_copy(&raw const self.0) },
+            PhantomData,
+        )
     }
 }
 
 impl Drop for TreeCursor<'_> {
     fn drop(&mut self) {
-        unsafe { ffi::ts_tree_cursor_delete(&mut self.0) }
+        unsafe { ffi::ts_tree_cursor_delete(&raw mut self.0) }
     }
 }
 
@@ -2313,7 +2333,7 @@ impl Iterator for LookaheadNamesIterator<'_> {
 
     #[doc(alias = "ts_lookahead_iterator_next")]
     fn next(&mut self) -> Option<Self::Item> {
-        unsafe { ffi::ts_lookahead_iterator_next(self.0 .0.as_ptr()) }
+        unsafe { ffi::ts_lookahead_iterator_next(self.0.0.as_ptr()) }
             .then(|| self.0.current_symbol_name())
     }
 }
@@ -2510,8 +2530,8 @@ impl Query {
                     ffi::ts_query_string_value_for_id(ptr.0, i, core::ptr::addr_of_mut!(length))
                         .cast::<u8>();
                 let value = slice::from_raw_parts(value, length as usize);
-                let value = str::from_utf8_unchecked(value);
-                value
+
+                str::from_utf8_unchecked(value)
             })
             .collect::<Vec<_>>();
 
@@ -2568,16 +2588,19 @@ impl Query {
                             return Err(predicate_error(
                                 row,
                                 format!(
-                                "Wrong number of arguments to #eq? predicate. Expected 2, got {}.",
-                                p.len() - 1
-                            ),
+                                    "Wrong number of arguments to #eq? predicate. Expected 2, got {}.",
+                                    p.len() - 1
+                                ),
                             ));
                         }
                         if p[1].type_ != TYPE_CAPTURE {
-                            return Err(predicate_error(row, format!(
-                                "First argument to #eq? predicate must be a capture name. Got literal \"{}\".",
-                                string_values[p[1].value_id as usize],
-                            )));
+                            return Err(predicate_error(
+                                row,
+                                format!(
+                                    "First argument to #eq? predicate must be a capture name. Got literal \"{}\".",
+                                    string_values[p[1].value_id as usize],
+                                ),
+                            ));
                         }
 
                         let is_positive = operator_name == "eq?" || operator_name == "any-eq?";
@@ -2605,22 +2628,31 @@ impl Query {
 
                     "match?" | "not-match?" | "any-match?" | "any-not-match?" => {
                         if p.len() != 3 {
-                            return Err(predicate_error(row, format!(
-                                "Wrong number of arguments to #match? predicate. Expected 2, got {}.",
-                                p.len() - 1
-                            )));
+                            return Err(predicate_error(
+                                row,
+                                format!(
+                                    "Wrong number of arguments to #match? predicate. Expected 2, got {}.",
+                                    p.len() - 1
+                                ),
+                            ));
                         }
                         if p[1].type_ != TYPE_CAPTURE {
-                            return Err(predicate_error(row, format!(
-                                "First argument to #match? predicate must be a capture name. Got literal \"{}\".",
-                                string_values[p[1].value_id as usize],
-                            )));
+                            return Err(predicate_error(
+                                row,
+                                format!(
+                                    "First argument to #match? predicate must be a capture name. Got literal \"{}\".",
+                                    string_values[p[1].value_id as usize],
+                                ),
+                            ));
                         }
                         if p[2].type_ == TYPE_CAPTURE {
-                            return Err(predicate_error(row, format!(
-                                "Second argument to #match? predicate must be a literal. Got capture @{}.",
-                                capture_names[p[2].value_id as usize],
-                            )));
+                            return Err(predicate_error(
+                                row,
+                                format!(
+                                    "Second argument to #match? predicate must be a literal. Got capture @{}.",
+                                    capture_names[p[2].value_id as usize],
+                                ),
+                            ));
                         }
 
                         let is_positive =
@@ -2662,26 +2694,35 @@ impl Query {
 
                     "any-of?" | "not-any-of?" => {
                         if p.len() < 2 {
-                            return Err(predicate_error(row, format!(
-                                "Wrong number of arguments to #any-of? predicate. Expected at least 1, got {}.",
-                                p.len() - 1
-                            )));
+                            return Err(predicate_error(
+                                row,
+                                format!(
+                                    "Wrong number of arguments to #any-of? predicate. Expected at least 1, got {}.",
+                                    p.len() - 1
+                                ),
+                            ));
                         }
                         if p[1].type_ != TYPE_CAPTURE {
-                            return Err(predicate_error(row, format!(
-                                "First argument to #any-of? predicate must be a capture name. Got literal \"{}\".",
-                                string_values[p[1].value_id as usize],
-                            )));
+                            return Err(predicate_error(
+                                row,
+                                format!(
+                                    "First argument to #any-of? predicate must be a capture name. Got literal \"{}\".",
+                                    string_values[p[1].value_id as usize],
+                                ),
+                            ));
                         }
 
                         let is_positive = operator_name == "any-of?";
                         let mut values = Vec::new();
                         for arg in &p[2..] {
                             if arg.type_ == TYPE_CAPTURE {
-                                return Err(predicate_error(row, format!(
-                                    "Arguments to #any-of? predicate must be literals. Got capture @{}.",
-                                    capture_names[arg.value_id as usize],
-                                )));
+                                return Err(predicate_error(
+                                    row,
+                                    format!(
+                                        "Arguments to #any-of? predicate must be literals. Got capture @{}.",
+                                        capture_names[arg.value_id as usize],
+                                    ),
+                                ));
                             }
                             values.push(string_values[arg.value_id as usize]);
                         }
@@ -3025,14 +3066,16 @@ impl QueryCursor {
         options: QueryCursorOptions,
     ) -> QueryMatches<'query, 'tree, T, I> {
         unsafe extern "C" fn progress(state: *mut ffi::TSQueryCursorState) -> bool {
-            let callback = (*state)
-                .payload
-                .cast::<QueryProgressCallback>()
-                .as_mut()
-                .unwrap();
-            match callback(&QueryCursorState::from_raw(state)) {
-                ControlFlow::Continue(()) => false,
-                ControlFlow::Break(()) => true,
+            unsafe {
+                let callback = (*state)
+                    .payload
+                    .cast::<QueryProgressCallback>()
+                    .as_mut()
+                    .unwrap();
+                match callback(&QueryCursorState::from_raw(state)) {
+                    ControlFlow::Continue(()) => false,
+                    ControlFlow::Break(()) => true,
+                }
             }
         }
 
@@ -3114,14 +3157,16 @@ impl QueryCursor {
         options: QueryCursorOptions,
     ) -> QueryCaptures<'query, 'tree, T, I> {
         unsafe extern "C" fn progress(state: *mut ffi::TSQueryCursorState) -> bool {
-            let callback = (*state)
-                .payload
-                .cast::<QueryProgressCallback>()
-                .as_mut()
-                .unwrap();
-            match callback(&QueryCursorState::from_raw(state)) {
-                ControlFlow::Continue(()) => false,
-                ControlFlow::Break(()) => true,
+            unsafe {
+                let callback = (*state)
+                    .payload
+                    .cast::<QueryProgressCallback>()
+                    .as_mut()
+                    .unwrap();
+                match callback(&QueryCursorState::from_raw(state)) {
+                    ControlFlow::Continue(()) => false,
+                    ControlFlow::Break(()) => true,
+                }
             }
         }
 
@@ -3293,7 +3338,7 @@ impl<'tree> QueryMatch<'_, 'tree> {
             first_chunk: Option<T>,
         }
         impl<'a, T: AsRef<[u8]>> NodeText<'a, T> {
-            fn new(buffer: &'a mut Vec<u8>) -> Self {
+            const fn new(buffer: &'a mut Vec<u8>) -> Self {
                 Self {
                     buffer,
                     first_chunk: None,
@@ -3757,14 +3802,14 @@ pub fn format_sexp(sexp: &str, initial_indent_level: usize) -> String {
             if c == '\'' || c == '"' {
                 quote = c;
             } else if c == ' ' || (c == ')' && quote != '\0') {
-                if let Some(next_c) = c_iter.peek() {
-                    if *next_c == quote {
-                        next.push(c);
-                        next.push(*next_c);
-                        c_iter.next();
-                        quote = '\0';
-                        continue;
-                    }
+                if let Some(next_c) = c_iter.peek()
+                    && *next_c == quote
+                {
+                    next.push(c);
+                    next.push(*next_c);
+                    c_iter.next();
+                    quote = '\0';
+                    continue;
                 }
                 break;
             }
@@ -3848,7 +3893,7 @@ pub fn wasm_stdlib_symbols() -> impl Iterator<Item = &'static str> {
         .map(|s| s.trim_matches(|c| c == '"' || c == ','))
 }
 
-extern "C" {
+unsafe extern "C" {
     fn free(ptr: *mut c_void);
 }
 
@@ -3866,8 +3911,8 @@ pub unsafe fn set_allocator(
     new_realloc: Option<unsafe extern "C" fn(ptr: *mut c_void, size: usize) -> *mut c_void>,
     new_free: Option<unsafe extern "C" fn(ptr: *mut c_void)>,
 ) {
-    FREE_FN = new_free.unwrap_or(free);
-    ffi::ts_set_allocator(new_malloc, new_calloc, new_realloc, new_free);
+    unsafe { FREE_FN = new_free.unwrap_or(free) };
+    unsafe { ffi::ts_set_allocator(new_malloc, new_calloc, new_realloc, new_free) };
 }
 
 #[cfg(feature = "std")]

@@ -22,11 +22,12 @@
     "parser",
     "lexer"
   ],
+  "type": "module",
   "engines": {
-    "node": ">=12.0.0"
+    "bun": ">=1.3.9"
   },
   "scripts": {
-    "install": "node install.js",
+    "install": "bun install.js",
     "prepack": "cp ../../../LICENSE ../README.md .",
     "postpack": "rm LICENSE README.md"
   },

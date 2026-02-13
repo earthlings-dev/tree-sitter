@@ -282,9 +282,11 @@ mod tests {
         let inline_map = process_inlines(&grammar, &LexicalGrammar::default()).unwrap();
 
         // Nothing to inline at step 0.
-        assert!(inline_map
-            .inlined_productions(&grammar.variables[0].productions[0], 0)
-            .is_none());
+        assert!(
+            inline_map
+                .inlined_productions(&grammar.variables[0].productions[0], 0)
+                .is_none()
+        );
 
         // Inlining variable 1 yields two productions.
         assert_eq!(

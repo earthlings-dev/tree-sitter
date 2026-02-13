@@ -118,7 +118,7 @@ to provide documentation and type information as you edit your grammar. For thes
 TypeScript API from npm into a `node_modules` directory in your project:
 
 ```sh
-npm install # or your package manager of choice
+bun install
 ```
 
 To learn more about this command, check the [reference page](../cli/generate.md).

@@ -25,6 +25,9 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Install wasm-objdump
         run: sudo apt-get update -y && sudo apt-get install -y wabt
 
@@ -35,7 +38,7 @@ jobs:
 
       - name: Build Wasm Library
         working-directory: lib/binding_web
-        run: npm ci && npm run build:debug
+        run: bun install && bun run build:debug
 
       - name: Check Wasm exports
         run: cargo xtask check-wasm-exports

@@ -33,7 +33,9 @@ pub type RenderResult<T> = Result<T, RenderError>;
 pub enum RenderError {
     #[error("Parse table action count {0} exceeds maximum value of {max}", max=u16::MAX)]
     ParseTable(usize),
-    #[error("This version of Tree-sitter can only generate parsers with ABI version {ABI_VERSION_MIN} - {ABI_VERSION_MAX}, not {0}")]
+    #[error(
+        "This version of Tree-sitter can only generate parsers with ABI version {ABI_VERSION_MIN} - {ABI_VERSION_MAX}, not {0}"
+    )]
     ABI(usize),
 }
 
@@ -228,10 +230,10 @@ impl Generator {
                 for other_symbol in &self.parse_table.symbols {
                     let other_metadata = self.metadata_for_symbol(*other_symbol);
                     if other_metadata == metadata {
-                        if let Some(mapped) = self.symbol_map.get(other_symbol) {
-                            if mapped == symbol {
-                                break;
-                            }
+                        if let Some(mapped) = self.symbol_map.get(other_symbol)
+                            && mapped == symbol
+                        {
+                            break;
                         }
                         mapping = other_symbol;
                         break;
@@ -616,18 +618,16 @@ impl Generator {
         for variable in &self.syntax_grammar.variables {
             for production in &variable.productions {
                 for step in &production.steps {
-                    if let Some(alias) = &step.alias {
-                        if step.symbol.is_non_terminal()
-                            && Some(alias) != self.default_aliases.get(&step.symbol)
-                            && self.symbol_ids.contains_key(&step.symbol)
-                        {
-                            if let Some(alias_id) = self.alias_ids.get(alias) {
-                                let alias_ids =
-                                    alias_ids_by_symbol.entry(step.symbol).or_insert(Vec::new());
-                                if let Err(i) = alias_ids.binary_search(&alias_id) {
-                                    alias_ids.insert(i, alias_id);
-                                }
-                            }
+                    if let Some(alias) = &step.alias
+                        && step.symbol.is_non_terminal()
+                        && Some(alias) != self.default_aliases.get(&step.symbol)
+                        && self.symbol_ids.contains_key(&step.symbol)
+                        && let Some(alias_id) = self.alias_ids.get(alias)
+                    {
+                        let alias_ids =
+                            alias_ids_by_symbol.entry(step.symbol).or_insert(Vec::new());
+                        if let Err(i) = alias_ids.binary_search(&alias_id) {
+                            alias_ids.insert(i, alias_id);
                         }
                     }
                 }

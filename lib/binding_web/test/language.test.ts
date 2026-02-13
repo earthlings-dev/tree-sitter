@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import helper from './helper';
 import type { LookaheadIterator, Language } from '../src';
 import { Parser } from '../src';
@@ -156,21 +156,21 @@ describe('Lookahead iterator', () => {
 
   it('should iterate over valid symbols in the state', () => {
     const symbols = Array.from(lookahead);
-    expect(symbols).toEqual(expect.arrayContaining(expected));
+    expect(symbols).toEqual(expect.arrayContaining(expected) as string[]);
     expect(symbols).toHaveLength(expected.length);
   });
 
   it('should reset to the initial state', () => {
     expect(lookahead.resetState(state)).toBe(true);
     const symbols = Array.from(lookahead);
-    expect(symbols).toEqual(expect.arrayContaining(expected));
+    expect(symbols).toEqual(expect.arrayContaining(expected) as string[]);
     expect(symbols).toHaveLength(expected.length);
   });
 
   it('should reset', () => {
     expect(lookahead.reset(JavaScript, state)).toBe(true);
     const symbols = Array.from(lookahead);
-    expect(symbols).toEqual(expect.arrayContaining(expected));
+    expect(symbols).toEqual(expect.arrayContaining(expected) as string[]);
     expect(symbols).toHaveLength(expected.length);
   });
 });

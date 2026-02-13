@@ -1,10 +1,10 @@
 use std::{cmp::Ordering, path::Path};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use indoc::indoc;
 use semver::{Prerelease, Version};
 
-use crate::{create_commit, BumpVersion};
+use crate::{BumpVersion, create_commit};
 
 pub fn get_latest_tag() -> Result<String> {
     let output = std::process::Command::new("git")
@@ -89,7 +89,6 @@ fn tag_next_version(next_version: &Version) -> Result<()> {
             "flake.nix",
             "crates/cli/Cargo.toml",
             "crates/cli/npm/package.json",
-            "crates/cli/npm/package-lock.json",
             "crates/config/Cargo.toml",
             "crates/highlight/Cargo.toml",
             "crates/loader/Cargo.toml",
@@ -97,7 +96,6 @@ fn tag_next_version(next_version: &Version) -> Result<()> {
             "CMakeLists.txt",
             "lib/Cargo.toml",
             "lib/binding_web/package.json",
-            "lib/binding_web/package-lock.json",
         ],
     )?;
 
@@ -240,20 +238,18 @@ fn update_npm(next_version: &Version) -> Result<()> {
 
         std::fs::write(package_json_path, package_json)?;
 
-        let Ok(cmd) = std::process::Command::new("npm")
+        let Ok(cmd) = std::process::Command::new("bun")
             .arg("install")
-            .arg("--package-lock-only")
-            .arg("--ignore-scripts")
             .current_dir(npm_path)
             .output()
         else {
-            return Ok(()); // npm is not `executable`, ignore
+            return Ok(()); // bun is not executable, ignore
         };
 
         if !cmd.status.success() {
             let stderr = String::from_utf8_lossy(&cmd.stderr);
             return Err(anyhow!(
-                "Failed to run `npm install` in {}:\n{stderr}",
+                "Failed to run `bun install` in {}:\n{stderr}",
                 npm_path.display()
             ));
         }

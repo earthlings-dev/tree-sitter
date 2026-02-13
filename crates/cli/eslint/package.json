@@ -17,10 +17,13 @@
     "tree-sitter"
   ],
   "dependencies": {
-    "eslint-plugin-jsdoc": "^50.2.4"
+    "eslint-plugin-jsdoc": "^62.5.4"
   },
   "peerDependencies": {
-    "eslint": ">= 9"
+    "eslint": "^10.0.0"
+  },
+  "engines": {
+    "bun": ">=1.3.9"
   },
   "scripts": {
     "prepack": "cp ../../../LICENSE .",

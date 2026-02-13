@@ -8,14 +8,14 @@ use std::{
 };
 
 use anstyle::{AnsiColor, Color, RgbColor};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::ValueEnum;
 use log::info;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tree_sitter::{
-    ffi, InputEdit, Language, LogType, ParseOptions, ParseState, Parser, Point, Range, Tree,
-    TreeCursor,
+    InputEdit, Language, LogType, ParseOptions, ParseState, Parser, Point, Range, Tree, TreeCursor,
+    ffi,
 };
 
 use crate::{fuzz::edits::Edit, logger::paint, util};
@@ -368,10 +368,10 @@ pub fn parse_file_at_path(
     // after the specified number of microseconds.
     let start_time = Instant::now();
     let progress_callback = &mut |_: &ParseState| {
-        if let Some(cancellation_flag) = opts.cancellation_flag {
-            if cancellation_flag.load(Ordering::SeqCst) != 0 {
-                return ControlFlow::Break(());
-            }
+        if let Some(cancellation_flag) = opts.cancellation_flag
+            && cancellation_flag.load(Ordering::SeqCst) != 0
+        {
+            return ControlFlow::Break(());
         }
 
         if opts.timeout > 0 && start_time.elapsed().as_micros() > opts.timeout as u128 {
@@ -544,10 +544,10 @@ pub fn parse_file_at_path(
                         }
                         write!(&mut stdout, "</{}>", tag.expect("there is a tag"))?;
                         // we only write a line in the case where it's the last sibling
-                        if let Some(parent) = node.parent() {
-                            if parent.child(parent.child_count() - 1).unwrap() == node {
-                                stdout.write_all(b"\n")?;
-                            }
+                        if let Some(parent) = node.parent()
+                            && parent.child(parent.child_count() - 1).unwrap() == node
+                        {
+                            stdout.write_all(b"\n")?;
                         }
                         needs_newline = true;
                     }
@@ -1055,10 +1055,13 @@ pub fn perform_edit(tree: &mut Tree, input: &mut Vec<u8>, edit: &Edit) -> Result
 
 fn parse_edit_flag(source_code: &[u8], flag: &str) -> Result<Edit> {
     let error = || {
-        anyhow!(concat!(
-            "Invalid edit string '{}'. ",
-            "Edit strings must match the pattern '<START_BYTE_OR_POSITION> <REMOVED_LENGTH> <NEW_TEXT>'"
-        ), flag)
+        anyhow!(
+            concat!(
+                "Invalid edit string '{}'. ",
+                "Edit strings must match the pattern '<START_BYTE_OR_POSITION> <REMOVED_LENGTH> <NEW_TEXT>'"
+            ),
+            flag
+        )
     };
 
     // Three whitespace-separated parts:
@@ -1099,12 +1102,12 @@ pub fn offset_for_position(input: &[u8], position: Point) -> Result<usize> {
     let mut offset = 0;
     let mut iter = memchr::memchr_iter(b'\n', input);
     loop {
-        if let Some(pos) = iter.next() {
-            if row < position.row {
-                row += 1;
-                offset = pos;
-                continue;
-            }
+        if let Some(pos) = iter.next()
+            && row < position.row
+        {
+            row += 1;
+            offset = pos;
+            continue;
         }
         offset += 1;
         break;

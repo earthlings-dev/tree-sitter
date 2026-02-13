@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'bun:test';
 import type { Point, Language, Tree, TreeCursor } from '../src';
 import { Parser, Edit } from '../src';
 import helper from './helper';
@@ -77,13 +77,11 @@ describe('Tree', () => {
         '(program (expression_statement (binary_expression left: (identifier) right: (identifier))))'
       );
 
-      let variableNode = tree.rootNode.firstChild!.firstChild!.lastChild;
-
       [input, edit] = spliceInput(input, input.indexOf('δ'), 0, '👍 * ');
       expect(input).toBe('αβ👍 * δ + cde');
       tree.edit(edit);
 
-      variableNode = tree.rootNode.firstChild!.firstChild!.lastChild;
+      const variableNode = tree.rootNode.firstChild!.firstChild!.lastChild;
       expect(variableNode!.startIndex).toBe(input.indexOf('cde'));
 
       tree = parser.parse(input, tree)!;

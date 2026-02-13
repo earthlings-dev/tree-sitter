@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'bun:test';
 import type { Language, Tree, Node } from '../src';
 import { Parser } from '../src';
 import helper from './helper';

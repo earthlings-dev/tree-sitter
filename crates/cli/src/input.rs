@@ -3,15 +3,16 @@ use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
     sync::{
+        Arc,
         atomic::{AtomicUsize, Ordering},
-        mpsc, Arc,
+        mpsc,
     },
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use glob::glob;
 
-use crate::test::{parse_tests, TestEntry};
+use crate::test::{TestEntry, parse_tests};
 
 pub enum CliInput {
     Paths(Vec<PathBuf>),

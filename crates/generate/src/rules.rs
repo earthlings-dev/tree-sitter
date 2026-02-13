@@ -411,7 +411,7 @@ impl TokenSet {
                     true
                 } else {
                     false
-                }
+                };
             }
             SymbolType::EndOfNonTerminalExtra => {
                 return if self.end_of_nonterminal_extra {

@@ -117,6 +117,8 @@ test:
 	cargo xtask test
 
 test-wasm:
+	cargo xtask build-wasm
+	cd lib/binding_web && bun install && bun run build:ts
 	cargo xtask generate-fixtures --wasm
 	cargo xtask test-wasm
 
@@ -126,8 +128,7 @@ lint:
 	cargo clippy --workspace --all-targets -- -D warnings
 
 lint-web:
-	npm --prefix lib/binding_web ci
-	npm --prefix lib/binding_web run lint
+	cd lib/binding_web && bun install && bun run lint
 
 format:
 	cargo fmt --all

@@ -259,7 +259,11 @@ impl std::fmt::Display for WasmToolError {
             )?;
         } else {
             let toolchain_upper = self.toolchain.replace('-', "_").to_ascii_uppercase();
-            write!(f, "TREE_SITTER_{toolchain_upper}_PATH is set to '{}', but no clang executable found in 'bin/' directory.", self.tool_dir)?;
+            write!(
+                f,
+                "TREE_SITTER_{toolchain_upper}_PATH is set to '{}', but no clang executable found in 'bin/' directory.",
+                self.tool_dir
+            )?;
         }
 
         let possible_exes = self.possible_executables.join(", ");
@@ -399,7 +403,7 @@ impl TreeSitterJSON {
     }
 
     #[must_use]
-    pub fn has_multiple_language_configs(&self) -> bool {
+    pub const fn has_multiple_language_configs(&self) -> bool {
         self.grammars.len() > 1
     }
 }
@@ -789,14 +793,14 @@ impl Loader {
             if let Ok(entries) = fs::read_dir(parser_container_dir) {
                 for entry in entries {
                     let entry = entry.map_err(|e| LoaderError::IO(IoError::new(e, None)))?;
-                    if let Some(parser_dir_name) = entry.file_name().to_str() {
-                        if parser_dir_name.starts_with("tree-sitter-") {
-                            self.find_language_configurations_at_path(
-                                &parser_container_dir.join(parser_dir_name),
-                                false,
-                            )
-                            .ok();
-                        }
+                    if let Some(parser_dir_name) = entry.file_name().to_str()
+                        && parser_dir_name.starts_with("tree-sitter-")
+                    {
+                        self.find_language_configurations_at_path(
+                            &parser_container_dir.join(parser_dir_name),
+                            false,
+                        )
+                        .ok();
                     }
                 }
             }
@@ -858,12 +862,13 @@ impl Loader {
                         .next()
                         .transpose()
                         .map_err(|e| LoaderError::IO(IoError::new(e, Some(path))))?;
-                    if let Some(first_line) = first_line {
-                        if regex.is_match(&first_line) && !ids.is_empty() {
-                            let configuration = &self.language_configurations[ids[0]];
-                            let language = self.language_for_id(configuration.language_id)?;
-                            return Ok(Some((language, configuration)));
-                        }
+                    if let Some(first_line) = first_line
+                        && regex.is_match(&first_line)
+                        && !ids.is_empty()
+                    {
+                        let configuration = &self.language_configurations[ids[0]];
+                        let language = self.language_for_id(configuration.language_id)?;
+                        return Ok(Some((language, configuration)));
                     }
                 }
 
@@ -893,51 +898,51 @@ impl Loader {
                     .get(&extensions.join("."))
             });
 
-        if let Some(configuration_ids) = configuration_ids {
-            if !configuration_ids.is_empty() {
-                let configuration = if configuration_ids.len() == 1 {
-                    &self.language_configurations[configuration_ids[0]]
-                }
-                // If multiple language configurations match, then determine which
-                // one to use by applying the configurations' content regexes.
-                else {
-                    let file_contents =
-                        fs::read(path).map_err(|e| LoaderError::IO(IoError::new(e, Some(path))))?;
-                    let file_contents = String::from_utf8_lossy(&file_contents);
-                    let mut best_score = -2isize;
-                    let mut best_configuration_id = None;
-                    for configuration_id in configuration_ids {
-                        let config = &self.language_configurations[*configuration_id];
-
-                        // If the language configuration has a content regex, assign
-                        // a score based on the length of the first match.
-                        let score;
-                        if let Some(content_regex) = &config.content_regex {
-                            if let Some(mat) = content_regex.find(&file_contents) {
-                                score = (mat.end() - mat.start()) as isize;
-                            }
-                            // If the content regex does not match, then *penalize* this
-                            // language configuration, so that language configurations
-                            // without content regexes are preferred over those with
-                            // non-matching content regexes.
-                            else {
-                                score = -1;
-                            }
-                        } else {
-                            score = 0;
-                        }
-                        if score > best_score {
-                            best_configuration_id = Some(*configuration_id);
-                            best_score = score;
-                        }
-                    }
-
-                    &self.language_configurations[best_configuration_id.unwrap()]
-                };
-
-                let language = self.language_for_id(configuration.language_id)?;
-                return Ok(Some((language, configuration)));
+        if let Some(configuration_ids) = configuration_ids
+            && !configuration_ids.is_empty()
+        {
+            let configuration = if configuration_ids.len() == 1 {
+                &self.language_configurations[configuration_ids[0]]
             }
+            // If multiple language configurations match, then determine which
+            // one to use by applying the configurations' content regexes.
+            else {
+                let file_contents =
+                    fs::read(path).map_err(|e| LoaderError::IO(IoError::new(e, Some(path))))?;
+                let file_contents = String::from_utf8_lossy(&file_contents);
+                let mut best_score = -2isize;
+                let mut best_configuration_id = None;
+                for configuration_id in configuration_ids {
+                    let config = &self.language_configurations[*configuration_id];
+
+                    // If the language configuration has a content regex, assign
+                    // a score based on the length of the first match.
+                    let score;
+                    if let Some(content_regex) = &config.content_regex {
+                        if let Some(mat) = content_regex.find(&file_contents) {
+                            score = (mat.end() - mat.start()) as isize;
+                        }
+                        // If the content regex does not match, then *penalize* this
+                        // language configuration, so that language configurations
+                        // without content regexes are preferred over those with
+                        // non-matching content regexes.
+                        else {
+                            score = -1;
+                        }
+                    } else {
+                        score = 0;
+                    }
+                    if score > best_score {
+                        best_configuration_id = Some(*configuration_id);
+                        best_score = score;
+                    }
+                }
+
+                &self.language_configurations[best_configuration_id.unwrap()]
+            };
+
+            let language = self.language_for_id(configuration.language_id)?;
+            return Ok(Some((language, configuration)));
         }
 
         Ok(None)
@@ -950,13 +955,13 @@ impl Loader {
         let mut best_match_length = 0;
         let mut best_match_position = None;
         for (i, configuration) in self.language_configurations.iter().enumerate() {
-            if let Some(injection_regex) = &configuration.injection_regex {
-                if let Some(mat) = injection_regex.find(string) {
-                    let length = mat.end() - mat.start();
-                    if length > best_match_length {
-                        best_match_position = Some(i);
-                        best_match_length = length;
-                    }
+            if let Some(injection_regex) = &configuration.injection_regex
+                && let Some(mat) = injection_regex.find(string)
+            {
+                let length = mat.end() - mat.start();
+                if length > best_match_length {
+                    best_match_position = Some(i);
+                    best_match_length = length;
                 }
             }
         }
@@ -1146,10 +1151,23 @@ impl Loader {
                 .lock_exclusive()
                 .map_err(|e| LoaderError::IO(IoError::new(e, Some(lock_path.as_path()))))?;
 
-            self.compile_parser_to_dylib(&config, &lock_file, &lock_path)?;
+            // Re-check after acquiring the lock: another thread may have
+            // already compiled while we were waiting.
+            if needs_recompile(&output_path, &paths_to_check)? {
+                self.compile_parser_to_dylib(&config, &lock_file, &lock_path)?;
 
-            if config.scanner_path.is_some() {
-                self.check_external_scanner(&output_path)?;
+                if config.scanner_path.is_some() {
+                    self.check_external_scanner(&output_path)?;
+                }
+            } else {
+                // Output is up-to-date; just release the lock and clean up.
+                FileExt::unlock(&lock_file)
+                    .map_err(|e| LoaderError::IO(IoError::new(e, Some(lock_path.as_path()))))?;
+                if let Err(e) = fs::remove_file(&lock_path)
+                    && e.kind() != std::io::ErrorKind::NotFound
+                {
+                    return Err(LoaderError::IO(IoError::new(e, Some(lock_path.as_path()))));
+                }
             }
         }
 
@@ -1305,8 +1323,12 @@ impl Loader {
 
         FileExt::unlock(lock_file)
             .map_err(|e| LoaderError::IO(IoError::new(e, Some(lock_path))))?;
-        fs::remove_file(lock_path)
-            .map_err(|e| LoaderError::IO(IoError::new(e, Some(lock_path))))?;
+        // Tolerate NotFound: another thread may have already cleaned up the lock file.
+        if let Err(e) = fs::remove_file(lock_path)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            return Err(LoaderError::IO(IoError::new(e, Some(lock_path))));
+        }
 
         if output.status.success() {
             Ok(())
@@ -1337,14 +1359,12 @@ impl Loader {
             if output.status.success() {
                 let mut non_static_symbols = String::new();
                 for line in String::from_utf8_lossy(&output.stdout).lines() {
-                    if line.contains(section) || old_ppc_section.is_some_and(|s| line.contains(s)) {
-                        if let Some(function_name) =
+                    if (line.contains(section) || old_ppc_section.is_some_and(|s| line.contains(s)))
+                        && let Some(function_name) =
                             line.split_whitespace().collect::<Vec<_>>().get(2)
-                        {
-                            if !line.contains("tree_sitter_") {
-                                writeln!(&mut non_static_symbols, "  `{function_name}`").unwrap();
-                            }
-                        }
+                        && !line.contains("tree_sitter_")
+                    {
+                        writeln!(&mut non_static_symbols, "  `{function_name}`").unwrap();
                     }
                 }
                 if !non_static_symbols.is_empty() {
@@ -1905,7 +1925,7 @@ impl Loader {
         // path to dynamic library, name of language
         lib_info: Option<&(PathBuf, &str)>,
     ) -> LoaderResult<Language> {
-        if let Some((ref lib_path, language_name)) = lib_info {
+        if let Some((lib_path, language_name)) = lib_info {
             let language_fn_name = format!("tree_sitter_{}", language_name.replace('-', "_"));
             Self::load_language(lib_path, &language_fn_name)
         } else if let Some(scope) = scope {

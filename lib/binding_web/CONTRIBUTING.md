@@ -11,7 +11,7 @@ Contributors to Tree-sitter should abide by the [Contributor Covenant][covenant]
 To make changes to Web-tree-sitter, you should have:
 
 1. A [Rust toolchain][rust], for running the xtasks necessary to build the library.
-2. Node.js and NPM (or an equivalent package manager).
+2. [Bun][bun] (version 1.3.9 or later).
 3. Either [Emscripten][emscripten], [Docker][docker], or [podman][podman] for
 compiling the library to Wasm.
 
@@ -27,13 +27,13 @@ cd tree-sitter/lib/binding_web
 Install the necessary dependencies:
 
 ```sh
-npm install
+bun install
 ```
 
 Build the library:
 
 ```sh
-npm run build
+bun run build
 ```
 
 Note that the build process requires a Rust toolchain to be installed. If you don't have one installed, you can install it
@@ -41,10 +41,10 @@ by visiting the [Rust website][rust] and following the instructions there.
 
 > [!NOTE]
 > By default, the build process will emit an ES6 module. If you need a CommonJS module, export `CJS` to `true`, or just
-> run `CJS=true npm run build` (or the equivalent command for Windows).
+> run `CJS=true bun run build` (or the equivalent command for Windows).
 
 > [!TIP]
-> To build the library with debug information, you can run `npm run build:debug`. The `CJS` environment variable is still
+> To build the library with debug information, you can run `bun run build:debug`. The `CJS` environment variable is still
 > taken into account.
 
 ### Putting it together
@@ -71,7 +71,7 @@ If you make changes to the library that require updating the type definitions, s
 you should run:
 
 ```sh
-npm run build:dts
+bun run build:dts
 ```
 
 This uses [`dts-buddy`][dts-buddy] to generate `web-tree-sitter.d.ts` from the public types in `src`. Additionally, a sourcemap
@@ -106,20 +106,20 @@ cargo xtask generate-fixtures --wasm
 Now, you can run the tests. In the `lib/binding_web` directory, run:
 
 ```sh
-npm test
+bun test
 ```
 
 > [!NOTE]
-> We use `vitest` to run the tests. If you want to run a specific test, you can use the `-t` flag to pass in a pattern.
+> We use Bun's built-in test runner to run the tests. If you want to run a specific test, you can use the `-t` flag to pass in a pattern.
 > If you want to run a specific file, you can just pass the name of the file as is. For example, to run the `parser` tests
-> in `test/parser.test.ts`, you can run `npm test parser`. To run tests that have the name `descendant` somewhere, run
-> `npm test -- -t descendant`.
+> in `test/parser.test.ts`, you can run `bun test parser`. To run tests that have the name `descendant` somewhere, run
+> `bun test -- -t descendant`.
 >
-> For coverage information, you can run `npm test -- --coverage`.
+> For coverage information, you can run `bun test -- --coverage`.
 
 ### Debugging
 
-You might have noticed that when you ran `npm build`, the build process generated a couple of [sourcemaps][sourcemap]:
+You might have noticed that when you ran `bun run build`, the build process generated a couple of [sourcemaps][sourcemap]:
 `web-tree-sitter.js.map` and `web-tree-sitter.wasm.map`. These sourcemaps can be used to debug the library in the browser, and are
 shipped with the library on both NPM and the GitHub releases.
 
@@ -129,6 +129,7 @@ If you're trying to tweak the Emscripten build, or are trying to debug an issue,
 file mentioned earlier, namely in the `run_wasm` function.
 
 [bindings.ts]: src/bindings.ts
+[bun]: https://bun.sh
 [build.js]: script/build.js
 [covenant]: https://www.contributor-covenant.org/version/1/4/code-of-conduct
 [docker]: https://www.docker.com

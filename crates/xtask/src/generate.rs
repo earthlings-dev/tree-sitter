@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, ffi::OsStr, fs, path::Path, process::Command, s
 use anyhow::{Context, Result};
 use bindgen::RustTarget;
 
-use crate::{bail_on_err, GenerateFixtures};
+use crate::{GenerateFixtures, bail_on_err};
 
 const HEADER_PATH: &str = "lib/include/tree_sitter/api.h";
 
@@ -176,7 +176,7 @@ pub fn run_wasm_exports() -> Result<()> {
 
 fn find_grammar_files(
     dir: &str,
-) -> impl Iterator<Item = Result<std::path::PathBuf, std::io::Error>> {
+) -> impl Iterator<Item = Result<std::path::PathBuf, std::io::Error>> + use<> {
     fs::read_dir(dir)
         .expect("Failed to read directory")
         .filter_map(Result::ok)

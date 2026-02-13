@@ -1,6 +1,7 @@
 use rand::{
+    RngExt,
     distr::Alphanumeric,
-    prelude::{Rng, SeedableRng, StdRng},
+    prelude::{SeedableRng, StdRng},
 };
 
 const OPERATORS: &[char] = &[

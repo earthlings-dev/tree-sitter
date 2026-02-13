@@ -1,7 +1,8 @@
 {
   wasm-test-grammars,
   lib,
-  buildNpmPackage,
+  bun,
+  stdenv,
   rustPlatform,
   cargo,
   pkg-config,
@@ -9,14 +10,13 @@
   src,
   version,
 }:
-buildNpmPackage {
+stdenv.mkDerivation {
   inherit src version;
 
   pname = "web-tree-sitter";
 
-  npmDepsHash = "sha256-y0GobcskcZTmju90TM64GjeWiBmPFCrTOg0yfccdB+Q=";
-
   nativeBuildInputs = [
+    bun
     rustPlatform.cargoSetupHook
     cargo
     pkg-config
@@ -29,17 +29,12 @@ buildNpmPackage {
 
   doCheck = true;
 
-  postPatch = ''
-    cp lib/binding_web/package{,-lock}.json .
-  '';
-
   buildPhase = ''
     pushd lib/binding_web
 
-    CJS=true npm run build
-    CJS=true npm run build:debug
-    npm run build:debug
-    npm run build
+    bun install
+    bun run build
+    bun run build:debug
 
     popd
 
@@ -53,7 +48,13 @@ buildNpmPackage {
   '';
 
   checkPhase = ''
-    cd lib/binding_web && npm test
+    cd lib/binding_web && bun test
+  '';
+
+  installPhase = ''
+    mkdir -p $out
+    cp -r lib/binding_web/web-tree-sitter.* $out/
+    cp -r lib/binding_web/debug $out/ || true
   '';
 
   meta = {

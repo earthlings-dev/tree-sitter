@@ -129,8 +129,7 @@ impl Version {
         // Only update Cargo.lock if Cargo.toml was updated
         push_err(self.update_cargo_toml()).then(|| push_err(self.update_cargo_lock()));
 
-        // Only update package-lock.json if package.json was updated
-        push_err(self.update_package_json()).then(|| push_err(self.update_package_lock_json()));
+        push_err(self.update_package_json());
 
         push_err(self.update_makefile(is_multigrammar));
         push_err(self.update_cmakelists_txt());
@@ -262,26 +261,6 @@ impl Version {
                 .join("\n")
                 + "\n"
         })?;
-
-        Ok(())
-    }
-
-    fn update_package_lock_json(&self) -> Result<(), UpdateError> {
-        if self.current_dir.join("package-lock.json").exists() {
-            let Ok(cmd) = Command::new("npm")
-                .arg("install")
-                .arg("--package-lock-only")
-                .current_dir(&self.current_dir)
-                .output()
-            else {
-                return Ok(()); // npm is not `executable`, ignore
-            };
-
-            if !cmd.status.success() {
-                let stderr = String::from_utf8_lossy(&cmd.stderr);
-                return Err(UpdateError::Command("npm install", stderr.to_string()));
-            }
-        }
 
         Ok(())
     }

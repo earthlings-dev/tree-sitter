@@ -8,18 +8,18 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use etcetera::BaseStrategy as _;
 use indoc::indoc;
 use notify::{
-    event::{AccessKind, AccessMode},
     EventKind, RecursiveMode,
+    event::{AccessKind, AccessMode},
 };
 use notify_debouncer_full::new_debouncer;
 use tree_sitter_loader::{IoError, LoaderError, WasmToolError};
 
 use crate::{
-    bail_on_err, embed_sources::embed_sources_in_map, watch_wasm, BuildWasm, EMSCRIPTEN_TAG,
+    BuildWasm, EMSCRIPTEN_TAG, bail_on_err, embed_sources::embed_sources_in_map, watch_wasm,
 };
 
 #[derive(PartialEq, Eq)]
@@ -153,7 +153,7 @@ pub fn run_wasm(args: &BuildWasm) -> Result<()> {
             #[cfg(unix)]
             {
                 #[link(name = "c")]
-                extern "C" {
+                unsafe extern "C" {
                     fn getuid() -> u32;
                 }
                 // don't need to set user for podman since PODMAN_USERNS=keep-id is already set
@@ -194,16 +194,13 @@ pub fn run_wasm(args: &BuildWasm) -> Result<()> {
     // Clean up old files from prior runs
     for file in [
         "web-tree-sitter.mjs",
-        "web-tree-sitter.cjs",
         "web-tree-sitter.wasm",
         "web-tree-sitter.wasm.map",
     ] {
         fs::remove_file(PathBuf::from("lib/binding_web/lib").join(file)).ok();
     }
 
-    if !args.cjs {
-        emscripten_flags.extend(["-s", "EXPORT_ES6=1"]);
-    }
+    emscripten_flags.extend(["-s", "EXPORT_ES6=1"]);
 
     macro_rules! binding_file {
         ($ext:literal) => {
@@ -239,7 +236,7 @@ pub fn run_wasm(args: &BuildWasm) -> Result<()> {
         "-I", "lib/include",
         "--js-library", "lib/binding_web/lib/imports.js",
         "--pre-js",     "lib/binding_web/lib/prefix.js",
-        "-o",           if args.cjs { binding_file!(".cjs") } else { binding_file!(".mjs") },
+        "-o",           binding_file!(".mjs"),
         "lib/src/lib.c",
         "lib/binding_web/lib/tree-sitter.c",
     ]);
@@ -334,15 +331,36 @@ fn build_wasm(cmd: &mut Command, edit_tsd: bool) -> Result<()> {
         fs::write(file, content)?;
     }
 
+    // Post-process the generated JS to provide __stack_pointer as a mutable
+    // WebAssembly.Global for side modules (grammar .wasm files). The emscripten
+    // main module manages its stack pointer internally and doesn't export it as
+    // a global, but wasi-sdk-compiled side modules import it from env.
+    {
+        let mjs_file = "lib/binding_web/lib/web-tree-sitter.mjs";
+        let mjs_content = fs::read_to_string(mjs_file)?;
+        let mjs_content = mjs_content.replace(
+            r#"case "__table_base":
+          return tableBase;
+        }"#,
+            r#"case "__table_base":
+          return tableBase;
+
+         case "__stack_pointer":
+          return wasmImports["__stack_pointer"] ??= new WebAssembly.Global({value: 'i32', mutable: true}, _emscripten_stack_get_current());
+        }"#,
+        );
+        fs::write(mjs_file, mjs_content)?;
+    }
+
     // Post-process the source map to embed source content for optimized builds
     let map_path = Path::new("lib")
         .join("binding_web")
         .join("lib")
         .join("web-tree-sitter.wasm.map");
-    if map_path.exists() {
-        if let Err(e) = embed_sources_in_map(&map_path) {
-            eprintln!("Warning: Failed to embed sources in source map: {e}");
-        }
+    if map_path.exists()
+        && let Err(e) = embed_sources_in_map(&map_path)
+    {
+        eprintln!("Warning: Failed to embed sources in source map: {e}");
     }
 
     Ok(())
@@ -427,7 +445,7 @@ pub fn ensure_binaryen_exists() -> Result<PathBuf> {
     let arch_os = ARCH_OS?.replace("arm64-linux", "aarch64-linux");
     let binaryen_filename = format!("binaryen-version_{BINARYEN_VERSION}-{arch_os}.tar.gz");
     let binaryen_url = format!(
-       "https://github.com/WebAssembly/binaryen/releases/download/version_{BINARYEN_VERSION}/{binaryen_filename}"
+        "https://github.com/WebAssembly/binaryen/releases/download/version_{BINARYEN_VERSION}/{binaryen_filename}"
     );
     download_tool(
         "wasm-opt",

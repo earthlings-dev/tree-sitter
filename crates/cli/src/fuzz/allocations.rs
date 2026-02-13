@@ -2,19 +2,21 @@ use std::{
     collections::HashMap,
     os::raw::c_void,
     sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering::SeqCst},
         Mutex,
+        atomic::{AtomicBool, AtomicUsize, Ordering::SeqCst},
     },
 };
 
 #[ctor::ctor]
 unsafe fn initialize_allocation_recording() {
-    tree_sitter::set_allocator(
-        Some(ts_record_malloc),
-        Some(ts_record_calloc),
-        Some(ts_record_realloc),
-        Some(ts_record_free),
-    );
+    unsafe {
+        tree_sitter::set_allocator(
+            Some(ts_record_malloc),
+            Some(ts_record_calloc),
+            Some(ts_record_realloc),
+            Some(ts_record_free),
+        );
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -33,7 +35,7 @@ thread_local! {
     static RECORDER: AllocationRecorder = AllocationRecorder::default();
 }
 
-extern "C" {
+unsafe extern "C" {
     fn malloc(size: usize) -> *mut c_void;
     fn calloc(count: usize, size: usize) -> *mut c_void;
     fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void;
@@ -103,7 +105,7 @@ fn record_dealloc(ptr: *mut c_void) {
 /// freed by calling `ts_record_free`.
 #[must_use]
 pub unsafe extern "C" fn ts_record_malloc(size: usize) -> *mut c_void {
-    let result = malloc(size);
+    let result = unsafe { malloc(size) };
     record_alloc(result);
     result
 }
@@ -114,7 +116,7 @@ pub unsafe extern "C" fn ts_record_malloc(size: usize) -> *mut c_void {
 /// freed by calling `ts_record_free`.
 #[must_use]
 pub unsafe extern "C" fn ts_record_calloc(count: usize, size: usize) -> *mut c_void {
-    let result = calloc(count, size);
+    let result = unsafe { calloc(count, size) };
     record_alloc(result);
     result
 }
@@ -125,7 +127,7 @@ pub unsafe extern "C" fn ts_record_calloc(count: usize, size: usize) -> *mut c_v
 /// freed by calling `ts_record_free`.
 #[must_use]
 pub unsafe extern "C" fn ts_record_realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
-    let result = realloc(ptr, size);
+    let result = unsafe { realloc(ptr, size) };
     if ptr.is_null() {
         record_alloc(result);
     } else if !core::ptr::eq(ptr, result) {
@@ -141,5 +143,5 @@ pub unsafe extern "C" fn ts_record_realloc(ptr: *mut c_void, size: usize) -> *mu
 /// to `ts_record_malloc`, `ts_record_calloc`, or `ts_record_realloc`.
 pub unsafe extern "C" fn ts_record_free(ptr: *mut c_void) {
     record_dealloc(ptr);
-    free(ptr);
+    unsafe { free(ptr) };
 }

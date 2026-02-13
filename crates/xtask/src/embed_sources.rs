@@ -21,12 +21,12 @@ pub fn embed_sources_in_map(map_path: &Path) -> Result<()> {
     let map_content = fs::read_to_string(map_path)?;
     let mut map: serde_json::Value = serde_json::from_str(&map_content)?;
 
-    if let Some(sources_content) = map.get("sourcesContent") {
-        if let Some(arr) = sources_content.as_array() {
-            if !arr.is_empty() && arr.iter().any(|v| !v.is_null()) {
-                return Ok(());
-            }
-        }
+    if let Some(sources_content) = map.get("sourcesContent")
+        && let Some(arr) = sources_content.as_array()
+        && !arr.is_empty()
+        && arr.iter().any(|v| !v.is_null())
+    {
+        return Ok(());
     }
 
     let sources = map["sources"]

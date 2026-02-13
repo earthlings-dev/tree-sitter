@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, fmt::Write, ops::Range};
 
-use rand::prelude::Rng;
+use rand::{Rng, RngExt};
 use streaming_iterator::{IntoStreamingIterator, StreamingIterator};
 use tree_sitter::{
     Language, Node, Parser, Point, Query, QueryCapture, QueryCursor, QueryMatch, Tree, TreeCursor,
@@ -204,10 +204,10 @@ impl Pattern {
         }
 
         // If a field is specified, check that it matches the node.
-        if let Some(field) = self.field {
-            if cursor.field_name() != Some(field) {
-                return Vec::new();
-            }
+        if let Some(field) = self.field
+            && cursor.field_name() != Some(field)
+        {
+            return Vec::new();
         }
 
         // Create a match for the current node.
